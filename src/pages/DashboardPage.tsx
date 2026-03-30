@@ -1,32 +1,68 @@
+import { useEffect, useState } from "react";
 import { Navbar } from "../components/layout/Navbar";
 import { FileDropzone } from "../components/dashboard/FileDropzone";
+import { GoalThermometer } from "../components/dashboard/GoalThermometer";
+import { AISummary } from "../components/dashboard/AISummary";
 import { RevenueLineChart } from "../components/charts/RevenueLinearChart";
 import { ExpenseBarChart } from "../components/charts/ExpenseBarChart";
+import { Card } from "../components/ui/Card";
 import { useDataStore } from "../stores/dataStore";
 import { detectAnomalies } from "../utils/anomalyDetector";
 import {
+  buildDataSummary,
   totalRevenue,
   totalExpenses,
   netProfit,
   formatCurrency,
 } from "../utils/dataAggregator";
-import { Card } from "../components/ui/Card";
-import { useEffect } from "react";
+import { generateSummary } from "../services/api.service";
 
 export function DashboardPage() {
-  const { rows, setAnomalies } = useDataStore();
+  const { rows, goal, aiSummary, setAnomalies, setAiSummary, setIsLoadingAI } =
+    useDataStore();
+
   const hasData = rows.length > 0;
-
-  // Detectamos anomalías cada vez que cambian los datos
-  useEffect(() => {
-    if (rows.length > 0) {
-      setAnomalies(detectAnomalies(rows));
-    }
-  }, [rows, setAnomalies]);
-
   const rev = totalRevenue(rows);
   const exp = totalExpenses(rows);
   const profit = netProfit(rows);
+
+  // Cada vez que cambian los datos o la meta, detectamos anomalías y pedimos análisis a la IA
+  useEffect(() => {
+    if (!hasData) return;
+
+    setAnomalies(detectAnomalies(rows));
+
+    const fetchSummary = async () => {
+      setIsLoadingAI(true);
+      try {
+        const summary = buildDataSummary(rows, goal?.amount);
+        const text = await generateSummary(summary);
+        setAiSummary(text);
+      } catch {
+        setAiSummary(
+          "No se pudo conectar con el servidor. Asegúrate de que el backend está corriendo.",
+        );
+      } finally {
+        setIsLoadingAI(false);
+      }
+    };
+
+    fetchSummary();
+  }, [rows, goal]);
+
+  const handleRefreshAI = async () => {
+    if (!hasData) return;
+    setIsLoadingAI(true);
+    try {
+      const summary = buildDataSummary(rows, goal?.amount);
+      const text = await generateSummary(summary);
+      setAiSummary(text);
+    } catch {
+      setAiSummary("Error al conectar con el servidor.");
+    } finally {
+      setIsLoadingAI(false);
+    }
+  };
 
   return (
     <div style={{ minHeight: "100vh", background: "var(--color-bg-base)" }}>
@@ -123,9 +159,63 @@ export function DashboardPage() {
             </Card>
           </div>
 
-          {/* Gráficos */}
-          <RevenueLineChart />
-          <ExpenseBarChart />
+          {/* Grid principal: gráficos + sidebar */}
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "1fr 340px",
+              gap: 20,
+            }}
+          >
+            {/* Columna izquierda */}
+            <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+              <GoalThermometer />
+              <RevenueLineChart />
+              <ExpenseBarChart />
+              <AISummary onRefresh={handleRefreshAI} />
+            </div>
+
+            {/* Columna derecha — placeholder hasta el Paso 8 */}
+            <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+              <Card
+                style={{
+                  height: 200,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+              >
+                <p
+                  style={{
+                    fontSize: 13,
+                    color: "var(--color-text-muted)",
+                    textAlign: "center",
+                  }}
+                >
+                  Tareas IA — Paso 8
+                </p>
+              </Card>
+              <Card
+                style={{
+                  flex: 1,
+                  minHeight: 300,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+              >
+                <p
+                  style={{
+                    fontSize: 13,
+                    color: "var(--color-text-muted)",
+                    textAlign: "center",
+                  }}
+                >
+                  Chat — Paso 8
+                </p>
+              </Card>
+            </div>
+          </div>
         </main>
       )}
     </div>
