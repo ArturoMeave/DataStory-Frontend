@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { Navbar } from "../components/layout/Navbar";
 import { FileDropzone } from "../components/dashboard/FileDropzone";
 import { GoalThermometer } from "../components/dashboard/GoalThermometer";
@@ -16,9 +16,12 @@ import {
   formatCurrency,
 } from "../utils/dataAggregator";
 import { generateSummary } from "../services/api.service";
+import { TaskPanel } from "../components/dashboard/TaskPanel";
+import { ChatPanel } from "../components/dashboard/ChatPanel";
+import { AnomalyAlert } from "../components/dashboard/AnomalyAlert";
 
 export function DashboardPage() {
-  const { rows, goal, aiSummary, setAnomalies, setAiSummary, setIsLoadingAI } =
+  const { rows, goal, setAnomalies, setAiSummary, setIsLoadingAI } =
     useDataStore();
 
   const hasData = rows.length > 0;
@@ -169,51 +172,17 @@ export function DashboardPage() {
           >
             {/* Columna izquierda */}
             <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+              <AnomalyAlert />
               <GoalThermometer />
               <RevenueLineChart />
               <ExpenseBarChart />
               <AISummary onRefresh={handleRefreshAI} />
             </div>
 
-            {/* Columna derecha — placeholder hasta el Paso 8 */}
+            {/* Columna derecha */}
             <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
-              <Card
-                style={{
-                  height: 200,
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                }}
-              >
-                <p
-                  style={{
-                    fontSize: 13,
-                    color: "var(--color-text-muted)",
-                    textAlign: "center",
-                  }}
-                >
-                  Tareas IA — Paso 8
-                </p>
-              </Card>
-              <Card
-                style={{
-                  flex: 1,
-                  minHeight: 300,
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                }}
-              >
-                <p
-                  style={{
-                    fontSize: 13,
-                    color: "var(--color-text-muted)",
-                    textAlign: "center",
-                  }}
-                >
-                  Chat — Paso 8
-                </p>
-              </Card>
+              <TaskPanel />
+              <ChatPanel />
             </div>
           </div>
         </main>
