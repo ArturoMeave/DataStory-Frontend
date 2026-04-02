@@ -48,3 +48,15 @@ export interface AppState {
   isLoadingAI: boolean;
   isReadOnly: boolean;
 }
+
+export interface AuthUser {
+  id: string;
+  email: string;
+  name: string | null;
+}
+
+export interface AuthState {
+  token: string | null;
+  user: AuthUser | null;
+  isAuthenticated: boolean;
+}

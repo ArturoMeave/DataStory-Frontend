@@ -3,9 +3,15 @@ const BASE_URL = import.meta.env.VITE_API_URL ?? "http://localhost:3001";
 // Función base que hace todas las peticiones HTTP.
 // Centraliza el manejo de errores para que no lo repitamos en cada llamada.
 async function request<T>(endpoint: string, options?: RequestInit): Promise<T> {
+  // Leemos el token directamente del localStorage
+  // para no crear dependencias circulares con el store
+  const token = localStorage.getItem("datastory_token");
+
   const response = await fetch(`${BASE_URL}${endpoint}`, {
     headers: {
       "Content-Type": "application/json",
+      // Si hay token lo añadimos en la cabecera Authorization
+      ...(token && { Authorization: `Bearer ${token}` }),
       ...options?.headers,
     },
     ...options,
@@ -91,5 +97,32 @@ export async function saveSnapshot(snapshotData: {
   return request("/api/snapshots", {
     method: "POST",
     body: JSON.stringify(snapshotData),
+  });
+}
+
+export async function registerUser(
+  email: string,
+  password: string,
+  name?: string,
+): Promise<{
+  token: string;
+  user: { id: string; email: string; name: string | null };
+}> {
+  return request("/api/auth/register", {
+    method: "POST",
+    body: JSON.stringify({ email, password, name }),
+  });
+}
+
+export async function loginUser(
+  email: string,
+  password: string,
+): Promise<{
+  token: string;
+  user: { id: string; email: string; name: string | null };
+}> {
+  return request("/api/auth/login", {
+    method: "POST",
+    body: JSON.stringify({ email, password }),
   });
 }
