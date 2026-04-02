@@ -1,6 +1,14 @@
-import { BarChart2, Download, Share2, Upload, RotateCcw } from "lucide-react";
+import {
+  BarChart2,
+  Download,
+  Share2,
+  Upload,
+  RotateCcw,
+  LogOut,
+} from "lucide-react";
 import { Button } from "../ui/Button";
 import { useDataStore } from "../../stores/dataStore";
+import { useAuthStore } from "../../stores/authStore";
 
 interface NavbarProps {
   onExportPDF?: () => void;
@@ -10,6 +18,13 @@ interface NavbarProps {
 
 export function Navbar({ onExportPDF, onShare, onUploadNew }: NavbarProps) {
   const { rows, isReadOnly, resetData } = useDataStore();
+  const { logout, user } = useAuthStore();
+
+  const handleLogout = () => {
+    logout();
+    resetData();
+  };
+
   const hasData = rows.length > 0;
 
   return (
@@ -78,27 +93,52 @@ export function Navbar({ onExportPDF, onShare, onUploadNew }: NavbarProps) {
           )}
         </div>
 
-        {/* Botones de acción — solo visibles con datos y fuera del modo lectura */}
-        {!isReadOnly && hasData && (
-          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-            <Button variant="ghost" size="sm" onClick={onUploadNew}>
-              <Upload size={13} />
-              Nuevo archivo
-            </Button>
-            <Button variant="ghost" size="sm" onClick={resetData}>
-              <RotateCcw size={13} />
-              Limpiar
-            </Button>
-            <Button variant="outline" size="sm" onClick={onShare}>
-              <Share2 size={13} />
-              Compartir
-            </Button>
-            <Button variant="primary" size="sm" onClick={onExportPDF}>
-              <Download size={13} />
-              Exportar PDF
-            </Button>
-          </div>
-        )}
+        {/* Lado derecho */}
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          {/* Acciones — solo visibles con datos y fuera del modo lectura */}
+          {!isReadOnly && hasData && (
+            <>
+              <Button variant="ghost" size="sm" onClick={onUploadNew}>
+                <Upload size={13} />
+                Nuevo archivo
+              </Button>
+              <Button variant="ghost" size="sm" onClick={resetData}>
+                <RotateCcw size={13} />
+                Limpiar
+              </Button>
+              <Button variant="outline" size="sm" onClick={onShare}>
+                <Share2 size={13} />
+                Compartir
+              </Button>
+              <Button variant="primary" size="sm" onClick={onExportPDF}>
+                <Download size={13} />
+                Exportar PDF
+              </Button>
+
+              {/* Separador */}
+              <div
+                style={{
+                  width: 1,
+                  height: 20,
+                  background: "var(--color-border)",
+                }}
+              />
+            </>
+          )}
+
+          {/* Usuario + logout — siempre visible si está autenticado */}
+          {user && (
+            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <span style={{ fontSize: 12, color: "var(--color-text-muted)" }}>
+                {user.name ?? user.email}
+              </span>
+              <Button variant="ghost" size="sm" onClick={handleLogout}>
+                <LogOut size={13} />
+                Salir
+              </Button>
+            </div>
+          )}
+        </div>
       </div>
     </header>
   );
