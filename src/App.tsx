@@ -4,6 +4,7 @@ import { DashboardPage } from "./pages/DashboardPage";
 import { SharePage } from "./pages/SharePage";
 import { NotFoundPage } from "./pages/NotFoundPage";
 import { AuthPage } from "./pages/AuthPage";
+import { HistoryPage } from "./pages/HistoryPage";
 import { ProtectedRoute } from "./components/layout/ProtectedRoute";
 
 export function App() {
@@ -25,6 +26,14 @@ export function App() {
           element={
             <ProtectedRoute>
               <SharePage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/history"
+          element={
+            <ProtectedRoute>
+              <HistoryPage />
             </ProtectedRoute>
           }
         />

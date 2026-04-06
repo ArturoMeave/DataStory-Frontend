@@ -16,6 +16,9 @@ async function captureChart(
   const element = document.getElementById(elementId);
   if (!element) return null;
 
+  // Damos un tiempo (medio segundo) para que terminen de animarse los gráficos
+  await new Promise((resolve) => setTimeout(resolve, 500));
+
   return html2canvas(element, {
     scale: 2,
     backgroundColor: "#16161f",

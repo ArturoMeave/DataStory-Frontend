@@ -99,6 +99,16 @@ export function ExpenseBarChart() {
           margin={{ top: 4, right: 8, bottom: 0, left: 8 }}
           barSize={20}
         >
+          <defs>
+            <linearGradient id="colorBar" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="5%" stopColor={COLORS.barStroke} stopOpacity={0.6} />
+              <stop offset="95%" stopColor={COLORS.barStroke} stopOpacity={0.1} />
+            </linearGradient>
+            <linearGradient id="colorAnomaly" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="5%" stopColor={COLORS.anomalyStroke} stopOpacity={0.6} />
+              <stop offset="95%" stopColor={COLORS.anomalyStroke} stopOpacity={0.1} />
+            </linearGradient>
+          </defs>
           <CartesianGrid
             strokeDasharray="3 3"
             stroke={COLORS.grid}
@@ -133,7 +143,7 @@ export function ExpenseBarChart() {
             {chartData.map((entry, i) => (
               <Cell
                 key={i}
-                fill={entry._isAnomaly ? COLORS.anomalyBar : COLORS.bar}
+                fill={entry._isAnomaly ? "url(#colorAnomaly)" : "url(#colorBar)"}
                 stroke={
                   entry._isAnomaly ? COLORS.anomalyStroke : COLORS.barStroke
                 }

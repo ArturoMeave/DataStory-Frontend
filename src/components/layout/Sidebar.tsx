@@ -1,21 +1,25 @@
 import { BarChart2, LayoutDashboard, LineChart, History, Settings, User, LogOut } from 'lucide-react'
+import { useNavigate, useLocation } from 'react-router-dom'
 import { useAuthStore } from '../../stores/authStore'
 import { useDataStore } from '../../stores/dataStore'
 
 const navItems = [
-  { icon: LayoutDashboard, label: 'Dashboard', active: true },
-  { icon: LineChart, label: 'Analysis', active: false },
-  { icon: History, label: 'History', active: false },
-  { icon: Settings, label: 'Settings', active: false },
+  { icon: LayoutDashboard, label: 'Dashboard', path: '/dashboard' },
+  { icon: LineChart, label: 'Analysis', path: '/analysis' },
+  { icon: History, label: 'History', path: '/history' },
+  { icon: Settings, label: 'Settings', path: '/settings' },
 ]
 
 export function Sidebar() {
   const { user, logout } = useAuthStore()
   const { resetData } = useDataStore()
+  const navigate = useNavigate()
+  const location = useLocation()
 
   const handleLogout = () => {
     logout()
     resetData()
+    navigate('/auth')
   }
 
   return (
@@ -63,43 +67,48 @@ export function Sidebar() {
 
       {/* Navigation */}
       <nav style={{ flex: 1, padding: '8px 12px' }}>
-        {navItems.map(({ icon: Icon, label, active }) => (
-          <div
-            key={label}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: 10,
-              padding: '10px 12px',
-              borderRadius: 8,
-              marginBottom: 2,
-              background: active ? 'var(--color-accent-dim)' : 'transparent',
-              borderLeft: active ? '3px solid var(--color-accent)' : '3px solid transparent',
-              cursor: 'pointer',
-              transition: 'all 0.15s ease',
-            }}
-            onMouseEnter={(e) => {
-              if (!active) e.currentTarget.style.background = 'rgba(255,255,255,0.04)'
-            }}
-            onMouseLeave={(e) => {
-              if (!active) e.currentTarget.style.background = 'transparent'
-            }}
-          >
-            <Icon
-              size={16}
-              color={active ? 'var(--color-accent)' : 'var(--color-text-muted)'}
-            />
-            <span
+        {navItems.map(({ icon: Icon, label, path }) => {
+          const active = location.pathname.startsWith(path)
+
+          return (
+            <div
+              key={label}
+              onClick={() => navigate(path)}
               style={{
-                fontSize: 13,
-                fontWeight: active ? 500 : 400,
-                color: active ? 'var(--color-accent)' : 'var(--color-text-secondary)',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 10,
+                padding: '10px 12px',
+                borderRadius: 8,
+                marginBottom: 2,
+                background: active ? 'var(--color-accent-dim)' : 'transparent',
+                borderLeft: active ? '3px solid var(--color-accent)' : '3px solid transparent',
+                cursor: 'pointer',
+                transition: 'all 0.15s ease',
+              }}
+              onMouseEnter={(e) => {
+                if (!active) e.currentTarget.style.background = 'rgba(255,255,255,0.04)'
+              }}
+              onMouseLeave={(e) => {
+                if (!active) e.currentTarget.style.background = 'transparent'
               }}
             >
-              {label}
-            </span>
-          </div>
-        ))}
+              <Icon
+                size={16}
+                color={active ? 'var(--color-accent)' : 'var(--color-text-muted)'}
+              />
+              <span
+                style={{
+                  fontSize: 13,
+                  fontWeight: active ? 500 : 400,
+                  color: active ? 'var(--color-accent)' : 'var(--color-text-secondary)',
+                }}
+              >
+                {label}
+              </span>
+            </div>
+          )
+        })}
       </nav>
 
       {/* User + Logout */}

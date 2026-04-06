@@ -1,22 +1,75 @@
-import { useState } from "react";
-import { Link2, Copy, Check, Info } from "lucide-react";
+import { useState, useEffect } from "react";
+import { Link2, Copy, Check, Info, Loader2 } from "lucide-react";
 import { Modal } from "../ui/Modal";
 import { Button } from "../ui/Button";
+import { useDataStore } from "../../stores/dataStore";
+import { useAuthStore } from "../../stores/authStore";
+import { saveSnapshot } from "../../services/api.service";
+import { totalRevenue, totalExpenses, netProfit } from "../../utils/dataAggregator";
 
 interface ShareModalProps {
   isOpen: boolean;
   onClose: () => void;
 }
 
-function generateShareId(): string {
-  return `ds-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
-}
-
 export function ShareModal({ isOpen, onClose }: ShareModalProps) {
-  const [shareId] = useState(generateShareId);
+  const { user } = useAuthStore();
+  const { rows, anomalies, goal, aiSummary } = useDataStore();
+
+  const [shareId, setShareId] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
   const [copied, setCopied] = useState(false);
 
-  const shareUrl = `${window.location.origin}/share/${shareId}`;
+  useEffect(() => {
+    if (!isOpen) {
+      setShareId(null);
+      setIsLoading(false);
+      return;
+    }
+
+    // Solo creamos el snapshot si no tenemos un ID ya
+    if (isOpen && !shareId && !isLoading) {
+      setIsLoading(true);
+      const doSave = async () => {
+        try {
+          const rev = totalRevenue(rows);
+          const exp = totalExpenses(rows);
+          const profit = netProfit(rows);
+          const recent = rows.slice(-6).map((r) => ({
+            date: r.date,
+            revenue: r.revenue,
+            expenses: r.expenses,
+          }));
+
+          const res = await saveSnapshot({
+            userId: user?.id || "anon",
+            totalRevenue: rev,
+            totalExpenses: exp,
+            netProfit: profit,
+            periodCount: rows.length,
+            anomalyCount: anomalies.length,
+            goalAmount: goal?.amount,
+            aiSummary: aiSummary,
+            recentPeriods: recent,
+          });
+
+          if (res.ok && res.id) {
+            setShareId(res.id);
+          }
+        } catch (error) {
+          console.error("Error saving snapshot:", error);
+        } finally {
+          setIsLoading(false);
+        }
+      };
+
+      doSave();
+    }
+  }, [isOpen]);
+
+  const shareUrl = shareId 
+    ? `${window.location.origin}/share/${shareId}` 
+    : "Generando enlace...";
 
   const handleCopy = async () => {
     try {
@@ -86,16 +139,20 @@ export function ShareModal({ isOpen, onClose }: ShareModalProps) {
               background: "var(--color-bg-card)",
               border: "1px solid var(--color-border)",
               fontSize: 12,
-              color: "var(--color-text-secondary)",
+              color: shareId ? "var(--color-text-secondary)" : "var(--color-text-muted)",
               fontFamily: "var(--font-mono)",
               overflow: "hidden",
               textOverflow: "ellipsis",
               whiteSpace: "nowrap",
+              display: "flex",
+              alignItems: "center",
+              gap: 8,
             }}
           >
+            {isLoading && <Loader2 size={14} className="animate-spin" />}
             {shareUrl}
           </div>
-          <Button variant="primary" size="sm" onClick={handleCopy}>
+          <Button variant="primary" size="sm" onClick={handleCopy} disabled={!shareId || isLoading}>
             {copied ? <Check size={13} /> : <Copy size={13} />}
             {copied ? "Copiado" : "Copiar"}
           </Button>

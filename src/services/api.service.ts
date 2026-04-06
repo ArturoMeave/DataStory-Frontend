@@ -126,3 +126,7 @@ export async function loginUser(
     body: JSON.stringify({ email, password }),
   });
 }
+
+export async function getSnapshots(): Promise<any[]> {
+  return request("/api/snapshots/me");
+}

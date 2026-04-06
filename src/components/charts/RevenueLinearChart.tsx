@@ -1,7 +1,7 @@
 import {
   ResponsiveContainer,
-  LineChart,
-  Line,
+  AreaChart,
+  Area,
   XAxis,
   YAxis,
   CartesianGrid,
@@ -112,10 +112,20 @@ export function RevenueLineChart() {
       subtitle={`${rows.length} períodos reales · 3 meses proyectados`}
     >
       <ResponsiveContainer width="100%" height="100%">
-        <LineChart
+        <AreaChart
           data={chartData}
           margin={{ top: 4, right: 8, bottom: 0, left: 8 }}
         >
+          <defs>
+            <linearGradient id="colorRevenue" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="5%" stopColor={COLORS.line} stopOpacity={0.4} />
+              <stop offset="95%" stopColor={COLORS.line} stopOpacity={0} />
+            </linearGradient>
+            <linearGradient id="colorForecast" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="5%" stopColor={COLORS.forecast} stopOpacity={0.3} />
+              <stop offset="95%" stopColor={COLORS.forecast} stopOpacity={0} />
+            </linearGradient>
+          </defs>
           <CartesianGrid
             strokeDasharray="3 3"
             stroke={COLORS.grid}
@@ -144,11 +154,13 @@ export function RevenueLineChart() {
           />
           <Tooltip content={<CustomTooltip />} />
 
-          {/* Línea sólida para datos reales */}
-          <Line
+          {/* Área con gradiente para datos reales */}
+          <Area
             type="monotone"
             dataKey="revenue"
             stroke={COLORS.line}
+            fillOpacity={1}
+            fill="url(#colorRevenue)"
             strokeWidth={2}
             dot={(props: any) => (
               <CustomDot {...props} anomalyIndices={anomalyIndices} />
@@ -156,9 +168,9 @@ export function RevenueLineChart() {
             activeDot={{ r: 5, fill: COLORS.line, strokeWidth: 0 }}
           />
 
-          {/* Línea punteada para la predicción — empieza en el último dato real */}
+          {/* Área con gradiente para la predicción — empieza en el último dato real */}
           {forecastPoints.length > 0 && (
-            <Line
+            <Area
               type="monotone"
               dataKey="revenue"
               data={[
@@ -166,6 +178,8 @@ export function RevenueLineChart() {
                 ...forecastPoints,
               ]}
               stroke={COLORS.forecast}
+              fillOpacity={1}
+              fill="url(#colorForecast)"
               strokeWidth={2}
               strokeDasharray="6 4"
               dot={false}
@@ -187,7 +201,7 @@ export function RevenueLineChart() {
               }}
             />
           )}
-        </LineChart>
+        </AreaChart>
       </ResponsiveContainer>
     </ChartContainer>
   );
