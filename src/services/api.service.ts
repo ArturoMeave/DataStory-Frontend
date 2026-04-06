@@ -118,8 +118,10 @@ export async function loginUser(
   email: string,
   password: string,
 ): Promise<{
-  token: string;
-  user: { id: string; email: string; name: string | null };
+  token?: string;
+  user?: { id: string; email: string; name: string | null };
+  requiresTwoFactor?: boolean;
+  userId?: string;
 }> {
   return request("/api/auth/login", {
     method: "POST",
@@ -143,4 +145,27 @@ export async function getSharedSnapshot(id: string): Promise<any> {
   }
   
   return response.json();
+}
+
+export async function verify2FALogin(userId: string, token: string): Promise<{
+  token: string;
+  user: { id: string; email: string; name: string | null };
+}> {
+  return request("/api/auth/login/verify-2fa", {
+    method: "POST",
+    body: JSON.stringify({ userId, token }),
+  });
+}
+
+export async function generate2FA(): Promise<{ secret: string; qrCodeDataUrl: string }> {
+  return request("/api/auth/2fa/generate", {
+    method: "POST",
+  });
+}
+
+export async function enable2FA(token: string): Promise<{ ok: boolean; message: string }> {
+  return request("/api/auth/2fa/enable", {
+    method: "POST",
+    body: JSON.stringify({ token }),
+  });
 }

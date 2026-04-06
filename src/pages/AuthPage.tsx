@@ -1,20 +1,30 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { BarChart2, Mail, Lock, User, AlertCircle } from "lucide-react";
+import { BarChart2, Mail, Lock, User, AlertCircle, Shield } from "lucide-react";
 import { Button } from "../components/ui/Button";
 import { useAuthStore } from "../stores/authStore";
-import { loginUser, registerUser } from "../services/api.service";
+import {
+  loginUser,
+  registerUser,
+  verify2FALogin,
+} from "../services/api.service";
 
 type Mode = "login" | "register";
+type Step = "auth" | "2fa";
 
 export function AuthPage() {
   const navigate = useNavigate();
   const { login } = useAuthStore();
 
   const [mode, setMode] = useState<Mode>("login");
+  const [step, setStep] = useState<Step>("auth");
+  const [pendingUserId, setPendingUserId] = useState<string | null>(null);
+
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [name, setName] = useState("");
+  const [twoFactorCode, setTwoFactorCode] = useState("");
+
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
@@ -24,13 +34,31 @@ export function AuthPage() {
     setIsLoading(true);
 
     try {
-      const result =
-        mode === "login"
-          ? await loginUser(email, password)
-          : await registerUser(email, password, name);
+      if (step === "auth") {
+        if (mode === "login") {
+          const result = await loginUser(email, password);
 
-      login(result.token, result.user);
-      navigate("/dashboard");
+          if (result.requiresTwoFactor && result.userId) {
+            setPendingUserId(result.userId);
+            setStep("2fa");
+          } else if (result.token && result.user) {
+            login(result.token, result.user);
+            navigate("/dashboard");
+          } else {
+            throw new Error("Respuesta inválida del servidor.");
+          }
+        } else {
+          const result = await registerUser(email, password, name);
+          login(result.token, result.user);
+          navigate("/dashboard");
+        }
+      } else if (step === "2fa") {
+        if (!pendingUserId) throw new Error("Falta el ID del usuario.");
+
+        const result = await verify2FALogin(pendingUserId, twoFactorCode);
+        login(result.token, result.user);
+        navigate("/dashboard");
+      }
     } catch (err) {
       setError(
         err instanceof Error
@@ -54,7 +82,6 @@ export function AuthPage() {
         position: "relative",
       }}
     >
-      {/* Glow decorativo */}
       <div
         style={{
           position: "absolute",
@@ -77,7 +104,6 @@ export function AuthPage() {
           zIndex: 1,
         }}
       >
-        {/* Logo */}
         <div
           style={{
             display: "flex",
@@ -112,7 +138,6 @@ export function AuthPage() {
           </span>
         </div>
 
-        {/* Card del formulario */}
         <div
           style={{
             background: "var(--color-bg-card)",
@@ -121,7 +146,6 @@ export function AuthPage() {
             padding: 32,
           }}
         >
-          {/* Título */}
           <div style={{ textAlign: "center", marginBottom: 28 }}>
             <h1
               style={{
@@ -131,22 +155,26 @@ export function AuthPage() {
                 marginBottom: 6,
               }}
             >
-              {mode === "login" ? "Bienvenido de vuelta" : "Crear una cuenta"}
+              {step === "2fa"
+                ? "Autenticación de Dos Pasos"
+                : mode === "login"
+                  ? "Bienvenido de vuelta"
+                  : "Crear una cuenta"}
             </h1>
             <p style={{ fontSize: 14, color: "var(--color-text-secondary)" }}>
-              {mode === "login"
-                ? "Inicia sesión para acceder a tu dashboard"
-                : "Empieza a analizar tus datos con IA"}
+              {step === "2fa"
+                ? "Introduce el código de 6 dígitos de tu aplicación autenticadora"
+                : mode === "login"
+                  ? "Inicia sesión para acceder a tu dashboard"
+                  : "Empieza a analizar tus datos con IA"}
             </p>
           </div>
 
-          {/* Formulario */}
           <form
             onSubmit={handleSubmit}
             style={{ display: "flex", flexDirection: "column", gap: 16 }}
           >
-            {/* Nombre — solo en registro */}
-            {mode === "register" && (
+            {step === "auth" && mode === "register" && (
               <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
                 <label
                   style={{
@@ -182,120 +210,150 @@ export function AuthPage() {
                       border: "1px solid var(--color-border-hover)",
                       color: "var(--color-text-primary)",
                       outline: "none",
-                      fontFamily: "var(--font-sans)",
-                    }}
-                    onFocus={(e) => {
-                      e.target.style.borderColor = "var(--color-accent)";
-                    }}
-                    onBlur={(e) => {
-                      e.target.style.borderColor = "var(--color-border-hover)";
                     }}
                   />
                 </div>
               </div>
             )}
 
-            {/* Email */}
-            <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-              <label
-                style={{
-                  fontSize: 12,
-                  fontWeight: 500,
-                  color: "var(--color-text-secondary)",
-                }}
-              >
-                Email
-              </label>
-              <div style={{ position: "relative" }}>
-                <Mail
-                  size={14}
-                  color="var(--color-text-muted)"
-                  style={{
-                    position: "absolute",
-                    left: 12,
-                    top: "50%",
-                    transform: "translateY(-50%)",
-                  }}
-                />
-                <input
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="tu@email.com"
-                  required
-                  style={{
-                    width: "100%",
-                    padding: "10px 12px 10px 36px",
-                    fontSize: 13,
-                    borderRadius: "var(--radius-md)",
-                    background: "var(--color-bg-elevated)",
-                    border: "1px solid var(--color-border-hover)",
-                    color: "var(--color-text-primary)",
-                    outline: "none",
-                    fontFamily: "var(--font-sans)",
-                  }}
-                  onFocus={(e) => {
-                    e.target.style.borderColor = "var(--color-accent)";
-                  }}
-                  onBlur={(e) => {
-                    e.target.style.borderColor = "var(--color-border-hover)";
-                  }}
-                />
-              </div>
-            </div>
+            {step === "auth" && (
+              <>
+                <div
+                  style={{ display: "flex", flexDirection: "column", gap: 6 }}
+                >
+                  <label
+                    style={{
+                      fontSize: 12,
+                      fontWeight: 500,
+                      color: "var(--color-text-secondary)",
+                    }}
+                  >
+                    Email
+                  </label>
+                  <div style={{ position: "relative" }}>
+                    <Mail
+                      size={14}
+                      color="var(--color-text-muted)"
+                      style={{
+                        position: "absolute",
+                        left: 12,
+                        top: "50%",
+                        transform: "translateY(-50%)",
+                      }}
+                    />
+                    <input
+                      type="email"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      placeholder="tu@email.com"
+                      required
+                      style={{
+                        width: "100%",
+                        padding: "10px 12px 10px 36px",
+                        fontSize: 13,
+                        borderRadius: "var(--radius-md)",
+                        background: "var(--color-bg-elevated)",
+                        border: "1px solid var(--color-border-hover)",
+                        color: "var(--color-text-primary)",
+                        outline: "none",
+                      }}
+                    />
+                  </div>
+                </div>
 
-            {/* Contraseña */}
-            <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-              <label
-                style={{
-                  fontSize: 12,
-                  fontWeight: 500,
-                  color: "var(--color-text-secondary)",
-                }}
-              >
-                Contraseña
-              </label>
-              <div style={{ position: "relative" }}>
-                <Lock
-                  size={14}
-                  color="var(--color-text-muted)"
-                  style={{
-                    position: "absolute",
-                    left: 12,
-                    top: "50%",
-                    transform: "translateY(-50%)",
-                  }}
-                />
-                <input
-                  type="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder={
-                    mode === "register" ? "Mínimo 6 caracteres" : "••••••••"
-                  }
-                  required
-                  style={{
-                    width: "100%",
-                    padding: "10px 12px 10px 36px",
-                    fontSize: 13,
-                    borderRadius: "var(--radius-md)",
-                    background: "var(--color-bg-elevated)",
-                    border: "1px solid var(--color-border-hover)",
-                    color: "var(--color-text-primary)",
-                    outline: "none",
-                    fontFamily: "var(--font-sans)",
-                  }}
-                  onFocus={(e) => {
-                    e.target.style.borderColor = "var(--color-accent)";
-                  }}
-                  onBlur={(e) => {
-                    e.target.style.borderColor = "var(--color-border-hover)";
-                  }}
-                />
-              </div>
-            </div>
+                <div
+                  style={{ display: "flex", flexDirection: "column", gap: 6 }}
+                >
+                  <label
+                    style={{
+                      fontSize: 12,
+                      fontWeight: 500,
+                      color: "var(--color-text-secondary)",
+                    }}
+                  >
+                    Contraseña
+                  </label>
+                  <div style={{ position: "relative" }}>
+                    <Lock
+                      size={14}
+                      color="var(--color-text-muted)"
+                      style={{
+                        position: "absolute",
+                        left: 12,
+                        top: "50%",
+                        transform: "translateY(-50%)",
+                      }}
+                    />
+                    <input
+                      type="password"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      placeholder={
+                        mode === "register" ? "Mínimo 6 caracteres" : "••••••••"
+                      }
+                      required
+                      style={{
+                        width: "100%",
+                        padding: "10px 12px 10px 36px",
+                        fontSize: 13,
+                        borderRadius: "var(--radius-md)",
+                        background: "var(--color-bg-elevated)",
+                        border: "1px solid var(--color-border-hover)",
+                        color: "var(--color-text-primary)",
+                        outline: "none",
+                      }}
+                    />
+                  </div>
+                </div>
+              </>
+            )}
 
-            {/* Error */}
+            {step === "2fa" && (
+              <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                <label
+                  style={{
+                    fontSize: 12,
+                    fontWeight: 500,
+                    color: "var(--color-text-secondary)",
+                  }}
+                >
+                  Código de verificación
+                </label>
+                <div style={{ position: "relative" }}>
+                  <Shield
+                    size={14}
+                    color="var(--color-text-muted)"
+                    style={{
+                      position: "absolute",
+                      left: 12,
+                      top: "50%",
+                      transform: "translateY(-50%)",
+                    }}
+                  />
+                  <input
+                    type="text"
+                    value={twoFactorCode}
+                    onChange={(e) => setTwoFactorCode(e.target.value)}
+                    placeholder="Ej. 123456"
+                    maxLength={6}
+                    required
+                    style={{
+                      width: "100%",
+                      padding: "10px 12px 10px 36px",
+                      fontSize: 16,
+                      letterSpacing: "2px",
+                      textAlign: "center",
+                      borderRadius: "var(--radius-md)",
+                      background: "var(--color-bg-elevated)",
+                      border: "1px solid var(--color-border-hover)",
+                      color: "var(--color-text-primary)",
+                      outline: "none",
+                    }}
+                  />
+                </div>
+              </div>
+            )}
+
             {error && (
               <div
                 style={{
@@ -319,7 +377,6 @@ export function AuthPage() {
               </div>
             )}
 
-            {/* Botón submit */}
             <Button
               variant="primary"
               size="lg"
@@ -327,17 +384,47 @@ export function AuthPage() {
               type="submit"
               style={{ width: "100%", marginTop: 4 }}
             >
-              {mode === "login" ? "Iniciar sesión" : "Crear cuenta"}
+              {step === "2fa"
+                ? "Verificar código"
+                : mode === "login"
+                  ? "Iniciar sesión"
+                  : "Crear cuenta"}
             </Button>
           </form>
 
-          {/* Toggle login/registro */}
-          <div style={{ textAlign: "center", marginTop: 20 }}>
-            <p style={{ fontSize: 13, color: "var(--color-text-muted)" }}>
-              {mode === "login" ? "¿No tienes cuenta?" : "¿Ya tienes cuenta?"}{" "}
+          {step === "auth" && (
+            <div style={{ textAlign: "center", marginTop: 20 }}>
+              <p style={{ fontSize: 13, color: "var(--color-text-muted)" }}>
+                {mode === "login" ? "¿No tienes cuenta?" : "¿Ya tienes cuenta?"}{" "}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setMode(mode === "login" ? "register" : "login");
+                    setError(null);
+                  }}
+                  style={{
+                    background: "none",
+                    border: "none",
+                    cursor: "pointer",
+                    fontSize: 13,
+                    fontWeight: 500,
+                    color: "var(--color-accent)",
+                  }}
+                >
+                  {mode === "login" ? "Regístrate" : "Inicia sesión"}
+                </button>
+              </p>
+            </div>
+          )}
+
+          {step === "2fa" && (
+            <div style={{ textAlign: "center", marginTop: 20 }}>
               <button
+                type="button"
                 onClick={() => {
-                  setMode(mode === "login" ? "register" : "login");
+                  setStep("auth");
+                  setPendingUserId(null);
+                  setTwoFactorCode("");
                   setError(null);
                 }}
                 style={{
@@ -346,14 +433,13 @@ export function AuthPage() {
                   cursor: "pointer",
                   fontSize: 13,
                   fontWeight: 500,
-                  color: "var(--color-accent)",
-                  fontFamily: "var(--font-sans)",
+                  color: "var(--color-text-secondary)",
                 }}
               >
-                {mode === "login" ? "Regístrate" : "Inicia sesión"}
+                ← Volver al login
               </button>
-            </p>
-          </div>
+            </div>
+          )}
         </div>
       </div>
     </div>
