@@ -163,9 +163,19 @@ export async function generate2FA(): Promise<{ secret: string; qrCodeDataUrl: st
   });
 }
 
-export async function enable2FA(token: string): Promise<{ ok: boolean; message: string }> {
+export async function enable2FA(token: string, frequency = "always"): Promise<{ ok: boolean; message: string }> {
   return request("/api/auth/2fa/enable", {
     method: "POST",
-    body: JSON.stringify({ token }),
+    body: JSON.stringify({ token, frequency }),
+  });
+}
+
+export async function update2FAFrequency(
+  token: string,
+  frequency: string,
+): Promise<{ ok: boolean; message: string }> {
+  return request("/api/auth/2fa/update-frequency", {
+    method: "POST",
+    body: JSON.stringify({ token, frequency }),
   });
 }
