@@ -5,6 +5,7 @@ import { SharePage } from "./pages/SharePage";
 import { NotFoundPage } from "./pages/NotFoundPage";
 import { AuthPage } from "./pages/AuthPage";
 import { HistoryPage } from "./pages/HistoryPage";
+import { SettingsPage } from "./pages/SettingsPage";
 import { ProtectedRoute } from "./components/layout/ProtectedRoute";
 
 export function App() {
@@ -34,6 +35,14 @@ export function App() {
           element={
             <ProtectedRoute>
               <HistoryPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/settings"
+          element={
+            <ProtectedRoute>
+              <SettingsPage />
             </ProtectedRoute>
           }
         />

@@ -122,6 +122,7 @@ export function Sidebar() {
         }}
       >
         <div
+          onClick={() => navigate('/settings')}
           style={{
             display: 'flex',
             alignItems: 'center',

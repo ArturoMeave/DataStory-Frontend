@@ -130,3 +130,17 @@ export async function loginUser(
 export async function getSnapshots(): Promise<any[]> {
   return request("/api/snapshots/me");
 }
+
+export async function getSharedSnapshot(id: string): Promise<any> {
+  // Petición pública sin token para compartir
+  const response = await fetch(`${BASE_URL}/api/snapshots/share/${id}`, {
+    method: "GET",
+    headers: { "Content-Type": "application/json" },
+  });
+  
+  if (!response.ok) {
+    throw new Error("No se pudo cargar el dashboard compartido");
+  }
+  
+  return response.json();
+}
