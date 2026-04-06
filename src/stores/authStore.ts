@@ -4,10 +4,9 @@ import type { AuthState, AuthUser } from "../types";
 interface AuthActions {
   login: (token: string, user: AuthUser) => void;
   logout: () => void;
+  updateUser: (updates: Partial<AuthUser>) => void; // <-- 1. NUESTRO NUEVO "BOLÍGRAFO"
 }
 
-// Recuperamos el token y usuario del localStorage al arrancar la app.
-// Así si el usuario recarga la página no pierde la sesión.
 function getInitialState(): AuthState {
   try {
     const token = localStorage.getItem("datastory_token");
@@ -18,7 +17,6 @@ function getInitialState(): AuthState {
       return { token, user, isAuthenticated: true };
     }
   } catch {
-    // Si hay algún error leyendo el localStorage limpiamos todo
     localStorage.removeItem("datastory_token");
     localStorage.removeItem("datastory_user");
   }
@@ -30,18 +28,23 @@ export const useAuthStore = create<AuthState & AuthActions>((set) => ({
   ...getInitialState(),
 
   login: (token, user) => {
-    // Guardamos en localStorage para que persista al recargar
     localStorage.setItem("datastory_token", token);
     localStorage.setItem("datastory_user", JSON.stringify(user));
-
     set({ token, user, isAuthenticated: true });
   },
 
   logout: () => {
-    // Limpiamos localStorage y el estado
     localStorage.removeItem("datastory_token");
     localStorage.removeItem("datastory_user");
-
     set({ token: null, user: null, isAuthenticated: false });
   },
+
+  // 2. LA MAGIA: Actualiza el estado y el disco duro al mismo tiempo
+  updateUser: (updates) =>
+    set((state) => {
+      if (!state.user) return state;
+      const updatedUser = { ...state.user, ...updates };
+      localStorage.setItem("datastory_user", JSON.stringify(updatedUser));
+      return { user: updatedUser };
+    }),
 }));
