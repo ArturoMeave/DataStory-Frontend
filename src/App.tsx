@@ -7,6 +7,7 @@ import { AuthPage } from "./pages/AuthPage";
 import { HistoryPage } from "./pages/HistoryPage";
 import { SettingsPage } from "./pages/SettingsPage";
 import { ProtectedRoute } from "./components/layout/ProtectedRoute";
+import { AuthCallbackPage } from "./pages/AuthCallbackPage";
 
 export function App() {
   return (
@@ -14,6 +15,7 @@ export function App() {
       <Routes>
         <Route path="/" element={<LandingPage />} />
         <Route path="/auth" element={<AuthPage />} />
+        <Route path="/auth/callback" element={<AuthCallbackPage />} />
         <Route
           path="/dashboard"
           element={
