@@ -10,6 +10,10 @@ import {
   Smartphone,
   Trash2,
   LogOut,
+  Laptop,
+  Apple,
+  X,
+  Lock,
 } from "lucide-react";
 import { useAuthStore } from "../stores/authStore";
 import {
@@ -21,13 +25,30 @@ import {
   revokeAllSessions,
 } from "../services/api.service";
 
+interface SessionData {
+  id: string;
+  device: string;
+  browser: string;
+  ip: string;
+  createdAt: string;
+  lastUsed: string;
+  isCurrent: boolean;
+}
+
+function getDeviceIcon(device: string) {
+  if (device === "iOS" || device === "Mac") return Apple;
+  if (device === "Android" || device === "Móvil") return Smartphone;
+  if (device === "Windows" || device === "Linux") return Laptop;
+  return Monitor;
+}
+
 export function SettingsPage() {
   const [activeTab, setActiveTab] = useState<
     "profile" | "workspace" | "devices"
   >("profile");
-  const { user, updateUser } = useAuthStore();
+  const { user, updateUser, logout } = useAuthStore();
 
-  // Estados para 2FA
+  // ── 2FA ──────────────────────────────────────────────────────────────────
   const [qrCode, setQrCode] = useState<string | null>(null);
   const [twoFactorCode, setTwoFactorCode] = useState("");
   const [frequency, setFrequency] = useState("always");
@@ -35,73 +56,6 @@ export function SettingsPage() {
   const [error2FA, setError2FA] = useState<string | null>(null);
   const [success2FA, setSuccess2FA] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
-
-  // Estados para dispositivos
-  const [sessions, setSessions] = useState<
-    Array<{
-      id: string;
-      device: string;
-      browser: string;
-      ip: string;
-      createdAt: string;
-      lastUsed: string;
-    }>
-  >([]);
-  const [sessionsLoading, setSessionsLoading] = useState(true);
-
-  useEffect(() => {
-    getSessions()
-      .then(setSessions)
-      .catch(() => setSessions([]))
-      .finally(() => setSessionsLoading(false));
-  }, []);
-
-  const handleRevokeSession = async (sessionId: string) => {
-    await revokeSession(sessionId);
-    setSessions((prev) => prev.filter((s) => s.id !== sessionId));
-  };
-
-  const handleRevokeAll = async () => {
-    await revokeAllSessions();
-    setSessions([]);
-  };
-
-  const handleGenerate2FA = async () => {
-    try {
-      setIsLoading(true);
-      setError2FA(null);
-      const res = await generate2FA();
-      setQrCode(res.qrCodeDataUrl);
-      setIs2FASetupVisible(true);
-    } catch (err) {
-      setError2FA("Error al generar el código QR.");
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleEnable2FA = async () => {
-    if (twoFactorCode.length !== 6) {
-      setError2FA("El código debe tener exactamente 6 dígitos.");
-      return;
-    }
-    try {
-      setIsLoading(true);
-      setError2FA(null);
-      await enable2FA(twoFactorCode, frequency);
-      updateUser({ isTwoFactorEnabled: true, twoFactorFrequency: frequency });
-      setSuccess2FA(
-        "¡Autenticación de 2 Pasos activada con éxito! Tu cuenta está protegida.",
-      );
-      setQrCode(null);
-      setTwoFactorCode("");
-    } catch (err) {
-      setError2FA("El código es incorrecto o ha expirado.");
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
   const [newFrequency, setNewFrequency] = useState(
     user?.twoFactorFrequency ?? "always",
   );
@@ -118,9 +72,43 @@ export function SettingsPage() {
     "30d": "Cada mes",
   };
 
+  const handleGenerate2FA = async () => {
+    try {
+      setIsLoading(true);
+      setError2FA(null);
+      const res = await generate2FA();
+      setQrCode(res.qrCodeDataUrl);
+      setIs2FASetupVisible(true);
+    } catch {
+      setError2FA("Error al generar el código QR.");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleEnable2FA = async () => {
+    if (twoFactorCode.length !== 6) {
+      setError2FA("El código debe tener 6 dígitos.");
+      return;
+    }
+    try {
+      setIsLoading(true);
+      setError2FA(null);
+      await enable2FA(twoFactorCode, frequency);
+      updateUser({ isTwoFactorEnabled: true, twoFactorFrequency: frequency });
+      setSuccess2FA("¡2FA activado con éxito!");
+      setQrCode(null);
+      setTwoFactorCode("");
+    } catch {
+      setError2FA("El código es incorrecto o ha expirado.");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const handleUpdateFrequency = async () => {
     if (freqCode.length !== 6) {
-      setFreqError("El código debe tener exactamente 6 dígitos.");
+      setFreqError("El código debe tener 6 dígitos.");
       return;
     }
     try {
@@ -133,11 +121,80 @@ export function SettingsPage() {
       );
       setFreqCode("");
       setIsFreqCodeVisible(false);
-    } catch (err) {
-      setFreqError("Código incorrecto. Inténtalo de nuevo.");
+    } catch {
+      setFreqError("Código incorrecto.");
     } finally {
       setIsFreqLoading(false);
     }
+  };
+
+  // ── Dispositivos ──────────────────────────────────────────────────────────
+  const [sessions, setSessions] = useState<SessionData[]>([]);
+  const [sessionsLoading, setSessionsLoading] = useState(true);
+
+  // Modal de confirmación
+  const [confirmModal, setConfirmModal] = useState<{
+    sessionId: string;
+    device: string;
+    browser: string;
+    isCurrent: boolean;
+  } | null>(null);
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [confirmError, setConfirmError] = useState<string | null>(null);
+  const [confirmLoading, setConfirmLoading] = useState(false);
+
+  useEffect(() => {
+    getSessions()
+      .then((data) => setSessions(data as SessionData[]))
+      .catch(() => setSessions([]))
+      .finally(() => setSessionsLoading(false));
+  }, []);
+
+  const openConfirmModal = (session: SessionData) => {
+    setConfirmModal({
+      sessionId: session.id,
+      device: session.device,
+      browser: session.browser,
+      isCurrent: session.isCurrent,
+    });
+    setConfirmPassword("");
+    setConfirmError(null);
+  };
+
+  const handleConfirmRevoke = async () => {
+    if (!confirmModal) return;
+    if (!confirmPassword.trim()) {
+      setConfirmError("La contraseña es obligatoria.");
+      return;
+    }
+
+    setConfirmLoading(true);
+    setConfirmError(null);
+
+    try {
+      await revokeSession(confirmModal.sessionId, confirmPassword);
+      setSessions((prev) =>
+        prev.filter((s) => s.id !== confirmModal.sessionId),
+      );
+
+      // Si eliminaste tu propia sesión, haz logout automático
+      if (confirmModal.isCurrent) {
+        logout();
+      }
+
+      setConfirmModal(null);
+    } catch (err) {
+      setConfirmError(
+        err instanceof Error ? err.message : "Error al revocar la sesión.",
+      );
+    } finally {
+      setConfirmLoading(false);
+    }
+  };
+
+  const handleRevokeAll = async () => {
+    await revokeAllSessions();
+    setSessions((prev) => prev.filter((s) => s.isCurrent));
   };
 
   return (
@@ -149,6 +206,188 @@ export function SettingsPage() {
       }}
     >
       <Sidebar />
+
+      {/* Modal de confirmación */}
+      {confirmModal && (
+        <div
+          style={{
+            position: "fixed",
+            inset: 0,
+            zIndex: 100,
+            background: "rgba(0,0,0,0.6)",
+            backdropFilter: "blur(4px)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            padding: 24,
+          }}
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setConfirmModal(null);
+          }}
+        >
+          <div
+            style={{
+              background: "var(--color-bg-card)",
+              border: "1px solid var(--color-border)",
+              borderRadius: "var(--radius-xl)",
+              padding: 28,
+              width: "100%",
+              maxWidth: 400,
+              display: "flex",
+              flexDirection: "column",
+              gap: 20,
+            }}
+          >
+            <div
+              style={{
+                display: "flex",
+                alignItems: "flex-start",
+                justifyContent: "space-between",
+              }}
+            >
+              <div>
+                <h3
+                  style={{
+                    fontSize: 16,
+                    fontWeight: 600,
+                    color: "var(--color-text-primary)",
+                    marginBottom: 4,
+                  }}
+                >
+                  ¿Cerrar esta sesión?
+                </h3>
+                <p
+                  style={{ fontSize: 13, color: "var(--color-text-secondary)" }}
+                >
+                  {confirmModal.browser} · {confirmModal.device}
+                  {confirmModal.isCurrent && (
+                    <span
+                      style={{ color: "var(--color-warning)", marginLeft: 6 }}
+                    >
+                      (este dispositivo)
+                    </span>
+                  )}
+                </p>
+              </div>
+              <button
+                onClick={() => setConfirmModal(null)}
+                style={{
+                  background: "none",
+                  border: "none",
+                  cursor: "pointer",
+                  color: "var(--color-text-muted)",
+                  padding: 4,
+                }}
+              >
+                <X size={16} />
+              </button>
+            </div>
+
+            {confirmModal.isCurrent && (
+              <div
+                style={{
+                  padding: "10px 14px",
+                  background: "var(--color-warning-dim)",
+                  border: "1px solid var(--color-warning)",
+                  borderRadius: "var(--radius-md)",
+                }}
+              >
+                <p style={{ fontSize: 13, color: "var(--color-warning)" }}>
+                  Estás cerrando tu sesión actual. Se te redirigirá al login
+                  automáticamente.
+                </p>
+              </div>
+            )}
+
+            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+              <label
+                style={{
+                  fontSize: 12,
+                  fontWeight: 500,
+                  color: "var(--color-text-secondary)",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 6,
+                }}
+              >
+                <Lock size={12} />
+                Confirma tu contraseña
+              </label>
+              <input
+                type="password"
+                value={confirmPassword}
+                onChange={(e) => {
+                  setConfirmPassword(e.target.value);
+                  setConfirmError(null);
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") handleConfirmRevoke();
+                }}
+                placeholder="Tu contraseña actual"
+                autoFocus
+                style={{
+                  padding: "10px 14px",
+                  fontSize: 13,
+                  borderRadius: "var(--radius-md)",
+                  background: "var(--color-bg-elevated)",
+                  border: `1px solid ${confirmError ? "var(--color-danger)" : "var(--color-border-hover)"}`,
+                  color: "var(--color-text-primary)",
+                  outline: "none",
+                }}
+              />
+              {confirmError && (
+                <p
+                  style={{
+                    fontSize: 12,
+                    color: "var(--color-danger)",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 4,
+                  }}
+                >
+                  <AlertCircle size={12} /> {confirmError}
+                </p>
+              )}
+            </div>
+
+            <div
+              style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}
+            >
+              <button
+                onClick={() => setConfirmModal(null)}
+                style={{
+                  padding: "8px 16px",
+                  background: "transparent",
+                  border: "1px solid var(--color-border)",
+                  borderRadius: "var(--radius-md)",
+                  color: "var(--color-text-secondary)",
+                  cursor: "pointer",
+                  fontSize: 13,
+                }}
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={handleConfirmRevoke}
+                disabled={confirmLoading || !confirmPassword.trim()}
+                style={{
+                  padding: "8px 16px",
+                  background: "var(--color-danger)",
+                  border: "none",
+                  borderRadius: "var(--radius-md)",
+                  color: "white",
+                  cursor: confirmPassword.trim() ? "pointer" : "not-allowed",
+                  fontSize: 13,
+                  fontWeight: 500,
+                  opacity: confirmPassword.trim() ? 1 : 0.5,
+                }}
+              >
+                {confirmLoading ? "Verificando..." : "Cerrar sesión"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <div
         style={{
@@ -194,84 +433,39 @@ export function SettingsPage() {
                 marginBottom: 24,
               }}
             >
-              <button
-                onClick={() => setActiveTab("profile")}
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 8,
-                  padding: "10px 16px",
-                  background:
-                    activeTab === "profile"
-                      ? "var(--color-accent-dim)"
-                      : "transparent",
-                  border: "none",
-                  borderRadius: "var(--radius-md)",
-                  color:
-                    activeTab === "profile"
-                      ? "var(--color-accent)"
-                      : "var(--color-text-secondary)",
-                  cursor: "pointer",
-                  fontSize: 14,
-                  fontWeight: 500,
-                  transition: "all 0.2s",
-                }}
-              >
-                <User size={16} />
-                Mi Perfil
-              </button>
-              <button
-                onClick={() => setActiveTab("workspace")}
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 8,
-                  padding: "10px 16px",
-                  background:
-                    activeTab === "workspace"
-                      ? "var(--color-accent-dim)"
-                      : "transparent",
-                  border: "none",
-                  borderRadius: "var(--radius-md)",
-                  color:
-                    activeTab === "workspace"
-                      ? "var(--color-accent)"
-                      : "var(--color-text-secondary)",
-                  cursor: "pointer",
-                  fontSize: 14,
-                  fontWeight: 500,
-                  transition: "all 0.2s",
-                }}
-              >
-                <Building size={16} />
-                Mi Empresa (Roles)
-              </button>
-              <button
-                onClick={() => setActiveTab("devices")}
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 8,
-                  padding: "10px 16px",
-                  background:
-                    activeTab === "devices"
-                      ? "var(--color-accent-dim)"
-                      : "transparent",
-                  border: "none",
-                  borderRadius: "var(--radius-md)",
-                  color:
-                    activeTab === "devices"
-                      ? "var(--color-accent)"
-                      : "var(--color-text-secondary)",
-                  cursor: "pointer",
-                  fontSize: 14,
-                  fontWeight: 500,
-                  transition: "all 0.2s",
-                }}
-              >
-                <Monitor size={16} />
-                Dispositivos
-              </button>
+              {[
+                { key: "profile", label: "Mi Perfil", icon: User },
+                { key: "workspace", label: "Mi Empresa", icon: Building },
+                { key: "devices", label: "Dispositivos", icon: Monitor },
+              ].map(({ key, label, icon: Icon }) => (
+                <button
+                  key={key}
+                  onClick={() => setActiveTab(key as any)}
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 8,
+                    padding: "10px 16px",
+                    background:
+                      activeTab === key
+                        ? "var(--color-accent-dim)"
+                        : "transparent",
+                    border: "none",
+                    borderRadius: "var(--radius-md)",
+                    color:
+                      activeTab === key
+                        ? "var(--color-accent)"
+                        : "var(--color-text-secondary)",
+                    cursor: "pointer",
+                    fontSize: 14,
+                    fontWeight: 500,
+                    transition: "all 0.2s",
+                  }}
+                >
+                  <Icon size={16} />
+                  {label}
+                </button>
+              ))}
             </div>
 
             {/* Tab: Perfil */}
@@ -301,7 +495,7 @@ export function SettingsPage() {
                     style={{
                       display: "flex",
                       flexDirection: "column",
-                      gap: 20,
+                      gap: 16,
                     }}
                   >
                     <div
@@ -330,6 +524,7 @@ export function SettingsPage() {
                           border: "1px solid var(--color-border)",
                           borderRadius: "var(--radius-md)",
                           color: "var(--color-text-secondary)",
+                          outline: "none",
                         }}
                       />
                     </div>
@@ -359,6 +554,7 @@ export function SettingsPage() {
                           border: "1px solid var(--color-border)",
                           borderRadius: "var(--radius-md)",
                           color: "var(--color-text-secondary)",
+                          outline: "none",
                         }}
                       />
                     </div>
@@ -450,7 +646,7 @@ export function SettingsPage() {
                             letterSpacing: "0.05em",
                           }}
                         >
-                          Frecuencia de verificación actual
+                          Frecuencia de verificación
                         </label>
                         <select
                           value={newFrequency}
@@ -498,15 +694,14 @@ export function SettingsPage() {
                               color: "var(--color-text-secondary)",
                             }}
                           >
-                            Confirma el cambio introduciendo tu código actual de
-                            6 dígitos:
+                            Confirma con tu código de 6 dígitos:
                           </p>
                           <div style={{ display: "flex", gap: 10 }}>
                             <input
                               type="text"
                               value={freqCode}
                               onChange={(e) => setFreqCode(e.target.value)}
-                              placeholder="Ej. 123456"
+                              placeholder="123456"
                               maxLength={6}
                               style={{
                                 flex: 1,
@@ -542,17 +737,17 @@ export function SettingsPage() {
                             </button>
                           </div>
                           {freqError && (
-                            <div
+                            <p
                               style={{
+                                fontSize: 12,
+                                color: "var(--color-danger)",
                                 display: "flex",
                                 alignItems: "center",
-                                gap: 8,
-                                fontSize: 13,
-                                color: "var(--color-danger)",
+                                gap: 4,
                               }}
                             >
-                              <AlertCircle size={13} /> {freqError}
-                            </div>
+                              <AlertCircle size={12} /> {freqError}
+                            </p>
                           )}
                         </div>
                       )}
@@ -642,7 +837,6 @@ export function SettingsPage() {
                                 fontSize: 12,
                                 color: "var(--color-text-muted)",
                                 textTransform: "uppercase",
-                                letterSpacing: "0.05em",
                               }}
                             >
                               ¿Con qué frecuencia pedir el código?
@@ -701,14 +895,14 @@ export function SettingsPage() {
                             marginBottom: 12,
                           }}
                         >
-                          2. Introduce el código de 6 dígitos que genera la app.
+                          2. Introduce el código de 6 dígitos.
                         </p>
                         <div style={{ display: "flex", gap: 12 }}>
                           <input
                             type="text"
                             value={twoFactorCode}
                             onChange={(e) => setTwoFactorCode(e.target.value)}
-                            placeholder="Ej. 123456"
+                            placeholder="123456"
                             maxLength={6}
                             style={{
                               flex: 1,
@@ -863,16 +1057,27 @@ export function SettingsPage() {
                       marginBottom: 20,
                     }}
                   >
-                    <h2
-                      style={{
-                        fontSize: 16,
-                        fontWeight: 600,
-                        color: "var(--color-text-primary)",
-                      }}
-                    >
-                      Dispositivos vinculados
-                    </h2>
-                    {sessions.length > 1 && (
+                    <div>
+                      <h2
+                        style={{
+                          fontSize: 16,
+                          fontWeight: 600,
+                          color: "var(--color-text-primary)",
+                          marginBottom: 4,
+                        }}
+                      >
+                        Dispositivos vinculados
+                      </h2>
+                      <p
+                        style={{
+                          fontSize: 13,
+                          color: "var(--color-text-muted)",
+                        }}
+                      >
+                        Gestiona dónde está activa tu cuenta.
+                      </p>
+                    </div>
+                    {sessions.filter((s) => !s.isCurrent).length > 0 && (
                       <button
                         onClick={handleRevokeAll}
                         style={{
@@ -905,124 +1110,149 @@ export function SettingsPage() {
                     <p
                       style={{ fontSize: 14, color: "var(--color-text-muted)" }}
                     >
-                      No hay sesiones activas registradas. Inicia sesión de
-                      nuevo para verlas aquí.
+                      No hay sesiones activas. Inicia sesión de nuevo para
+                      verlas aquí.
                     </p>
                   ) : (
                     <div
                       style={{
                         display: "flex",
                         flexDirection: "column",
-                        gap: 12,
+                        gap: 10,
                       }}
                     >
-                      {sessions.map((session) => (
-                        <div
-                          key={session.id}
-                          style={{
-                            display: "flex",
-                            alignItems: "center",
-                            justifyContent: "space-between",
-                            padding: "14px 16px",
-                            background: "var(--color-bg-elevated)",
-                            border: "1px solid var(--color-border)",
-                            borderRadius: "var(--radius-md)",
-                          }}
-                        >
+                      {sessions.map((session) => {
+                        const DeviceIcon = getDeviceIcon(session.device);
+                        return (
                           <div
+                            key={session.id}
                             style={{
                               display: "flex",
                               alignItems: "center",
-                              gap: 14,
+                              justifyContent: "space-between",
+                              padding: "14px 16px",
+                              background: "var(--color-bg-elevated)",
+                              border: `1px solid ${session.isCurrent ? "var(--color-accent)" : "var(--color-border)"}`,
+                              borderRadius: "var(--radius-md)",
                             }}
                           >
                             <div
                               style={{
-                                width: 36,
-                                height: 36,
-                                borderRadius: "var(--radius-md)",
-                                background: "var(--color-accent-dim)",
                                 display: "flex",
                                 alignItems: "center",
-                                justifyContent: "center",
-                                flexShrink: 0,
+                                gap: 14,
                               }}
                             >
-                              {session.device === "Móvil" ? (
-                                <Smartphone
-                                  size={16}
-                                  color="var(--color-accent)"
-                                />
-                              ) : (
-                                <Monitor
-                                  size={16}
-                                  color="var(--color-accent)"
-                                />
-                              )}
-                            </div>
-                            <div>
-                              <p
+                              <div
                                 style={{
-                                  fontSize: 13,
-                                  fontWeight: 500,
-                                  color: "var(--color-text-primary)",
+                                  width: 36,
+                                  height: 36,
+                                  borderRadius: "var(--radius-md)",
+                                  background: session.isCurrent
+                                    ? "var(--color-accent-dim)"
+                                    : "var(--color-bg-card)",
+                                  display: "flex",
+                                  alignItems: "center",
+                                  justifyContent: "center",
+                                  flexShrink: 0,
                                 }}
                               >
-                                {session.browser} · {session.device}
-                              </p>
-                              <p
-                                style={{
-                                  fontSize: 12,
-                                  color: "var(--color-text-muted)",
-                                  marginTop: 2,
-                                }}
-                              >
-                                IP: {session.ip} · Último acceso:{" "}
-                                {new Date(session.lastUsed).toLocaleDateString(
-                                  "es-ES",
-                                  {
+                                <DeviceIcon
+                                  size={16}
+                                  color={
+                                    session.isCurrent
+                                      ? "var(--color-accent)"
+                                      : "var(--color-text-muted)"
+                                  }
+                                />
+                              </div>
+                              <div>
+                                <div
+                                  style={{
+                                    display: "flex",
+                                    alignItems: "center",
+                                    gap: 8,
+                                    marginBottom: 2,
+                                  }}
+                                >
+                                  <p
+                                    style={{
+                                      fontSize: 13,
+                                      fontWeight: 500,
+                                      color: "var(--color-text-primary)",
+                                    }}
+                                  >
+                                    {session.browser} · {session.device}
+                                  </p>
+                                  {session.isCurrent && (
+                                    <span
+                                      style={{
+                                        fontSize: 10,
+                                        fontWeight: 600,
+                                        padding: "1px 7px",
+                                        background: "var(--color-accent-dim)",
+                                        color: "var(--color-accent)",
+                                        borderRadius: 10,
+                                        letterSpacing: "0.05em",
+                                      }}
+                                    >
+                                      ESTE DISPOSITIVO
+                                    </span>
+                                  )}
+                                </div>
+                                <p
+                                  style={{
+                                    fontSize: 12,
+                                    color: "var(--color-text-muted)",
+                                  }}
+                                >
+                                  IP: {session.ip} ·{" "}
+                                  {new Date(
+                                    session.lastUsed,
+                                  ).toLocaleDateString("es-ES", {
                                     day: "2-digit",
                                     month: "short",
                                     year: "numeric",
                                     hour: "2-digit",
                                     minute: "2-digit",
-                                  },
-                                )}
-                              </p>
+                                  })}
+                                </p>
+                              </div>
                             </div>
+                            <button
+                              onClick={() => openConfirmModal(session)}
+                              style={{
+                                display: "flex",
+                                alignItems: "center",
+                                justifyContent: "center",
+                                width: 32,
+                                height: 32,
+                                background: "transparent",
+                                border: "1px solid var(--color-border)",
+                                borderRadius: "var(--radius-md)",
+                                cursor: "pointer",
+                                color: "var(--color-text-muted)",
+                                transition: "all 0.15s",
+                              }}
+                              onMouseEnter={(e) => {
+                                e.currentTarget.style.borderColor =
+                                  "var(--color-danger)";
+                                e.currentTarget.style.color =
+                                  "var(--color-danger)";
+                              }}
+                              onMouseLeave={(e) => {
+                                e.currentTarget.style.borderColor =
+                                  "var(--color-border)";
+                                e.currentTarget.style.color =
+                                  "var(--color-text-muted)";
+                              }}
+                              title="Cerrar esta sesión"
+                            >
+                              <Trash2 size={13} />
+                            </button>
                           </div>
-                          <button
-                            onClick={() => handleRevokeSession(session.id)}
-                            style={{
-                              display: "flex",
-                              alignItems: "center",
-                              justifyContent: "center",
-                              width: 32,
-                              height: 32,
-                              background: "transparent",
-                              border: "1px solid var(--color-border)",
-                              borderRadius: "var(--radius-md)",
-                              cursor: "pointer",
-                              color: "var(--color-text-muted)",
-                            }}
-                            onMouseEnter={(e) => {
-                              e.currentTarget.style.borderColor =
-                                "var(--color-danger)";
-                              e.currentTarget.style.color =
-                                "var(--color-danger)";
-                            }}
-                            onMouseLeave={(e) => {
-                              e.currentTarget.style.borderColor =
-                                "var(--color-border)";
-                              e.currentTarget.style.color =
-                                "var(--color-text-muted)";
-                            }}
-                            title="Cerrar esta sesión"
-                          >
-                            <Trash2 size={13} />
-                          </button>
-                        </div>
-                      ))}
+                        );
+                      })}
                     </div>
                   )}
                 </div>

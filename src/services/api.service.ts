@@ -204,8 +204,12 @@ export async function getSessions(): Promise<
 
 export async function revokeSession(
   sessionId: string,
+  password: string,
 ): Promise<{ ok: boolean }> {
-  return request(`/api/sessions/${sessionId}`, { method: "DELETE" });
+  return request(`/api/sessions/${sessionId}`, {
+    method: "DELETE",
+    body: JSON.stringify({ password }),
+  });
 }
 
 export async function revokeAllSessions(): Promise<{ ok: boolean }> {
