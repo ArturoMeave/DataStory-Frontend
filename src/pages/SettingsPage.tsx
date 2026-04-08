@@ -1,17 +1,30 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Sidebar } from "../components/layout/Sidebar";
-import { User, Building, ShieldCheck, Shield, AlertCircle } from "lucide-react";
+import {
+  User,
+  Building,
+  ShieldCheck,
+  Shield,
+  AlertCircle,
+  Monitor,
+  Smartphone,
+  Trash2,
+  LogOut,
+} from "lucide-react";
 import { useAuthStore } from "../stores/authStore";
 import {
   generate2FA,
   enable2FA,
   update2FAFrequency,
+  getSessions,
+  revokeSession,
+  revokeAllSessions,
 } from "../services/api.service";
 
 export function SettingsPage() {
-  const [activeTab, setActiveTab] = useState<"profile" | "workspace">(
-    "profile",
-  );
+  const [activeTab, setActiveTab] = useState<
+    "profile" | "workspace" | "devices"
+  >("profile");
   const { user, updateUser } = useAuthStore();
 
   // Estados para 2FA
@@ -22,6 +35,36 @@ export function SettingsPage() {
   const [error2FA, setError2FA] = useState<string | null>(null);
   const [success2FA, setSuccess2FA] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+
+  // Estados para dispositivos
+  const [sessions, setSessions] = useState<
+    Array<{
+      id: string;
+      device: string;
+      browser: string;
+      ip: string;
+      createdAt: string;
+      lastUsed: string;
+    }>
+  >([]);
+  const [sessionsLoading, setSessionsLoading] = useState(true);
+
+  useEffect(() => {
+    getSessions()
+      .then(setSessions)
+      .catch(() => setSessions([]))
+      .finally(() => setSessionsLoading(false));
+  }, []);
+
+  const handleRevokeSession = async (sessionId: string) => {
+    await revokeSession(sessionId);
+    setSessions((prev) => prev.filter((s) => s.id !== sessionId));
+  };
+
+  const handleRevokeAll = async () => {
+    await revokeAllSessions();
+    setSessions([]);
+  };
 
   const handleGenerate2FA = async () => {
     try {
@@ -42,16 +85,11 @@ export function SettingsPage() {
       setError2FA("El código debe tener exactamente 6 dígitos.");
       return;
     }
-
     try {
       setIsLoading(true);
       setError2FA(null);
       await enable2FA(twoFactorCode, frequency);
-
-      // --- ¡AQUÍ ESTÁ LA MAGIA QUE FALTABA! ---
       updateUser({ isTwoFactorEnabled: true, twoFactorFrequency: frequency });
-      // ----------------------------------------
-
       setSuccess2FA(
         "¡Autenticación de 2 Pasos activada con éxito! Tu cuenta está protegida.",
       );
@@ -64,7 +102,6 @@ export function SettingsPage() {
     }
   };
 
-  // Nuevo estado para el panel de cambio de frecuencia
   const [newFrequency, setNewFrequency] = useState(
     user?.twoFactorFrequency ?? "always",
   );
@@ -90,11 +127,7 @@ export function SettingsPage() {
       setIsFreqLoading(true);
       setFreqError(null);
       await update2FAFrequency(freqCode, newFrequency);
-
-      // --- ¡Y AQUÍ TAMBIÉN! ---
       updateUser({ twoFactorFrequency: newFrequency });
-      // ------------------------
-
       setFreqSuccess(
         `Frecuencia actualizada a "${frequencyLabels[newFrequency]}".`,
       );
@@ -115,10 +148,8 @@ export function SettingsPage() {
         background: "var(--color-bg-base)",
       }}
     >
-      {/* Sidebar */}
       <Sidebar />
 
-      {/* Main Content */}
       <div
         style={{
           marginLeft: 220,
@@ -128,7 +159,6 @@ export function SettingsPage() {
           minHeight: "100vh",
         }}
       >
-        {/* Header */}
         <header
           style={{
             padding: "20px 32px",
@@ -152,10 +182,9 @@ export function SettingsPage() {
           </h1>
         </header>
 
-        {/* Content */}
         <main style={{ padding: "28px 32px", flex: 1 }}>
           <div style={{ maxWidth: 800, margin: "0 auto" }}>
-            {/* Tabs System */}
+            {/* Tabs */}
             <div
               style={{
                 display: "flex",
@@ -217,14 +246,39 @@ export function SettingsPage() {
                 <Building size={16} />
                 Mi Empresa (Roles)
               </button>
+              <button
+                onClick={() => setActiveTab("devices")}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 8,
+                  padding: "10px 16px",
+                  background:
+                    activeTab === "devices"
+                      ? "var(--color-accent-dim)"
+                      : "transparent",
+                  border: "none",
+                  borderRadius: "var(--radius-md)",
+                  color:
+                    activeTab === "devices"
+                      ? "var(--color-accent)"
+                      : "var(--color-text-secondary)",
+                  cursor: "pointer",
+                  fontSize: 14,
+                  fontWeight: 500,
+                  transition: "all 0.2s",
+                }}
+              >
+                <Monitor size={16} />
+                Dispositivos
+              </button>
             </div>
 
-            {/* Tab Views */}
+            {/* Tab: Perfil */}
             {activeTab === "profile" && (
               <div
                 style={{ display: "flex", flexDirection: "column", gap: 24 }}
               >
-                {/* Info Personal */}
                 <div
                   style={{
                     background: "var(--color-bg-card)",
@@ -311,7 +365,7 @@ export function SettingsPage() {
                   </div>
                 </div>
 
-                {/* Sección de Seguridad 2FA */}
+                {/* 2FA */}
                 <div
                   style={{
                     background: "var(--color-bg-card)",
@@ -340,7 +394,6 @@ export function SettingsPage() {
                     </h2>
                   </div>
 
-                  {/* VISTA A: 2FA ya está activo → mostramos el panel de gestión de frecuencia */}
                   {user?.isTwoFactorEnabled ? (
                     <div
                       style={{
@@ -382,7 +435,6 @@ export function SettingsPage() {
                           </p>
                         </div>
                       </div>
-
                       <div
                         style={{
                           display: "flex",
@@ -428,8 +480,6 @@ export function SettingsPage() {
                           <option value="30d">Cada mes</option>
                         </select>
                       </div>
-
-                      {/* Solo muestra el input de verificación si el usuario cambió la frecuencia */}
                       {isFreqCodeVisible && (
                         <div
                           style={{
@@ -506,7 +556,6 @@ export function SettingsPage() {
                           )}
                         </div>
                       )}
-
                       {freqSuccess && (
                         <p
                           style={{
@@ -519,7 +568,6 @@ export function SettingsPage() {
                       )}
                     </div>
                   ) : success2FA ? (
-                    /* VISTA B: El usuario acaba de activar el 2FA en esta sesión */
                     <div
                       style={{
                         background: "rgba(34,211,160,0.1)",
@@ -533,7 +581,6 @@ export function SettingsPage() {
                       {success2FA}
                     </div>
                   ) : !is2FASetupVisible ? (
-                    /* VISTA C: El usuario no tiene 2FA → botón para comenzar */
                     <div
                       style={{
                         display: "flex",
@@ -547,9 +594,7 @@ export function SettingsPage() {
                           color: "var(--color-text-secondary)",
                         }}
                       >
-                        Protege tu cuenta con la Autenticación de Dos Pasos. Te
-                        pediremos un código de tu app autenticadora cada vez que
-                        inicies sesión.
+                        Protege tu cuenta con la Autenticación de Dos Pasos.
                       </p>
                       <button
                         onClick={handleGenerate2FA}
@@ -570,7 +615,6 @@ export function SettingsPage() {
                       </button>
                     </div>
                   ) : (
-                    /* VISTA D: Flujo de configuración del QR */
                     <div
                       style={{
                         display: "flex",
@@ -632,8 +676,7 @@ export function SettingsPage() {
                               marginBottom: 12,
                             }}
                           >
-                            1. Escanea este código QR con tu aplicación (Google
-                            Authenticator, Authy, etc).
+                            1. Escanea este código QR con tu aplicación.
                           </p>
                           <img
                             src={qrCode}
@@ -658,8 +701,7 @@ export function SettingsPage() {
                             marginBottom: 12,
                           }}
                         >
-                          2. Introduce el código de 6 dígitos que genera la app
-                          para confirmar.
+                          2. Introduce el código de 6 dígitos que genera la app.
                         </p>
                         <div style={{ display: "flex", gap: 12 }}>
                           <input
@@ -725,6 +767,7 @@ export function SettingsPage() {
               </div>
             )}
 
+            {/* Tab: Workspace */}
             {activeTab === "workspace" && (
               <div
                 style={{ display: "flex", flexDirection: "column", gap: 24 }}
@@ -769,7 +812,6 @@ export function SettingsPage() {
                       <ShieldCheck size={14} /> ADMINISTRADOR
                     </span>
                   </div>
-
                   <p
                     style={{
                       fontSize: 14,
@@ -779,10 +821,8 @@ export function SettingsPage() {
                     }}
                   >
                     Aquí podrás invitar a otros miembros a tu equipo y cambiar
-                    permisos. El servidor ya está preparado, muy pronto
-                    activaremos esta pantalla visualmente.
+                    permisos.
                   </p>
-
                   <div
                     style={{
                       padding: "20px",
@@ -798,6 +838,193 @@ export function SettingsPage() {
                       Vista de Roles y Permisos en construcción...
                     </p>
                   </div>
+                </div>
+              </div>
+            )}
+
+            {/* Tab: Dispositivos */}
+            {activeTab === "devices" && (
+              <div
+                style={{ display: "flex", flexDirection: "column", gap: 24 }}
+              >
+                <div
+                  style={{
+                    background: "var(--color-bg-card)",
+                    border: "1px solid var(--color-border)",
+                    borderRadius: "var(--radius-lg)",
+                    padding: 24,
+                  }}
+                >
+                  <div
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "space-between",
+                      marginBottom: 20,
+                    }}
+                  >
+                    <h2
+                      style={{
+                        fontSize: 16,
+                        fontWeight: 600,
+                        color: "var(--color-text-primary)",
+                      }}
+                    >
+                      Dispositivos vinculados
+                    </h2>
+                    {sessions.length > 1 && (
+                      <button
+                        onClick={handleRevokeAll}
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          gap: 6,
+                          padding: "6px 12px",
+                          background: "var(--color-danger-dim)",
+                          border: "1px solid var(--color-danger)",
+                          borderRadius: "var(--radius-md)",
+                          color: "var(--color-danger)",
+                          fontSize: 12,
+                          fontWeight: 500,
+                          cursor: "pointer",
+                        }}
+                      >
+                        <LogOut size={12} />
+                        Cerrar todas las demás
+                      </button>
+                    )}
+                  </div>
+
+                  {sessionsLoading ? (
+                    <p
+                      style={{ fontSize: 14, color: "var(--color-text-muted)" }}
+                    >
+                      Cargando...
+                    </p>
+                  ) : sessions.length === 0 ? (
+                    <p
+                      style={{ fontSize: 14, color: "var(--color-text-muted)" }}
+                    >
+                      No hay sesiones activas registradas. Inicia sesión de
+                      nuevo para verlas aquí.
+                    </p>
+                  ) : (
+                    <div
+                      style={{
+                        display: "flex",
+                        flexDirection: "column",
+                        gap: 12,
+                      }}
+                    >
+                      {sessions.map((session) => (
+                        <div
+                          key={session.id}
+                          style={{
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "space-between",
+                            padding: "14px 16px",
+                            background: "var(--color-bg-elevated)",
+                            border: "1px solid var(--color-border)",
+                            borderRadius: "var(--radius-md)",
+                          }}
+                        >
+                          <div
+                            style={{
+                              display: "flex",
+                              alignItems: "center",
+                              gap: 14,
+                            }}
+                          >
+                            <div
+                              style={{
+                                width: 36,
+                                height: 36,
+                                borderRadius: "var(--radius-md)",
+                                background: "var(--color-accent-dim)",
+                                display: "flex",
+                                alignItems: "center",
+                                justifyContent: "center",
+                                flexShrink: 0,
+                              }}
+                            >
+                              {session.device === "Móvil" ? (
+                                <Smartphone
+                                  size={16}
+                                  color="var(--color-accent)"
+                                />
+                              ) : (
+                                <Monitor
+                                  size={16}
+                                  color="var(--color-accent)"
+                                />
+                              )}
+                            </div>
+                            <div>
+                              <p
+                                style={{
+                                  fontSize: 13,
+                                  fontWeight: 500,
+                                  color: "var(--color-text-primary)",
+                                }}
+                              >
+                                {session.browser} · {session.device}
+                              </p>
+                              <p
+                                style={{
+                                  fontSize: 12,
+                                  color: "var(--color-text-muted)",
+                                  marginTop: 2,
+                                }}
+                              >
+                                IP: {session.ip} · Último acceso:{" "}
+                                {new Date(session.lastUsed).toLocaleDateString(
+                                  "es-ES",
+                                  {
+                                    day: "2-digit",
+                                    month: "short",
+                                    year: "numeric",
+                                    hour: "2-digit",
+                                    minute: "2-digit",
+                                  },
+                                )}
+                              </p>
+                            </div>
+                          </div>
+                          <button
+                            onClick={() => handleRevokeSession(session.id)}
+                            style={{
+                              display: "flex",
+                              alignItems: "center",
+                              justifyContent: "center",
+                              width: 32,
+                              height: 32,
+                              background: "transparent",
+                              border: "1px solid var(--color-border)",
+                              borderRadius: "var(--radius-md)",
+                              cursor: "pointer",
+                              color: "var(--color-text-muted)",
+                            }}
+                            onMouseEnter={(e) => {
+                              e.currentTarget.style.borderColor =
+                                "var(--color-danger)";
+                              e.currentTarget.style.color =
+                                "var(--color-danger)";
+                            }}
+                            onMouseLeave={(e) => {
+                              e.currentTarget.style.borderColor =
+                                "var(--color-border)";
+                              e.currentTarget.style.color =
+                                "var(--color-text-muted)";
+                            }}
+                            title="Cerrar esta sesión"
+                          >
+                            <Trash2 size={13} />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
               </div>
             )}

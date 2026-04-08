@@ -139,15 +139,18 @@ export async function getSharedSnapshot(id: string): Promise<any> {
     method: "GET",
     headers: { "Content-Type": "application/json" },
   });
-  
+
   if (!response.ok) {
     throw new Error("No se pudo cargar el dashboard compartido");
   }
-  
+
   return response.json();
 }
 
-export async function verify2FALogin(userId: string, token: string): Promise<{
+export async function verify2FALogin(
+  userId: string,
+  token: string,
+): Promise<{
   token: string;
   user: { id: string; email: string; name: string | null };
 }> {
@@ -157,13 +160,19 @@ export async function verify2FALogin(userId: string, token: string): Promise<{
   });
 }
 
-export async function generate2FA(): Promise<{ secret: string; qrCodeDataUrl: string }> {
+export async function generate2FA(): Promise<{
+  secret: string;
+  qrCodeDataUrl: string;
+}> {
   return request("/api/auth/2fa/generate", {
     method: "POST",
   });
 }
 
-export async function enable2FA(token: string, frequency = "always"): Promise<{ ok: boolean; message: string }> {
+export async function enable2FA(
+  token: string,
+  frequency = "always",
+): Promise<{ ok: boolean; message: string }> {
   return request("/api/auth/2fa/enable", {
     method: "POST",
     body: JSON.stringify({ token, frequency }),
@@ -178,4 +187,27 @@ export async function update2FAFrequency(
     method: "POST",
     body: JSON.stringify({ token, frequency }),
   });
+}
+
+export async function getSessions(): Promise<
+  Array<{
+    id: string;
+    device: string;
+    browser: string;
+    ip: string;
+    createdAt: string;
+    lastUsed: string;
+  }>
+> {
+  return request("/api/sessions");
+}
+
+export async function revokeSession(
+  sessionId: string,
+): Promise<{ ok: boolean }> {
+  return request(`/api/sessions/${sessionId}`, { method: "DELETE" });
+}
+
+export async function revokeAllSessions(): Promise<{ ok: boolean }> {
+  return request("/api/sessions", { method: "DELETE" });
 }
