@@ -215,3 +215,12 @@ export async function revokeSession(
 export async function revokeAllSessions(): Promise<{ ok: boolean }> {
   return request("/api/sessions", { method: "DELETE" });
 }
+
+export async function deleteAccount(
+  password: string,
+): Promise<{ ok: boolean }> {
+  return request("/api/auth/delete-account", {
+    method: "DELETE",
+    body: JSON.stringify({ password }),
+  });
+}

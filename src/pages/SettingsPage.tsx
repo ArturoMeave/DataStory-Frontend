@@ -1,4 +1,6 @@
 import { useState, useEffect } from "react";
+import { useThemeStore } from "../stores/themeStore";
+import { Sun, Moon, Palette, RotateCcw } from "lucide-react";
 import { Sidebar } from "../components/layout/Sidebar";
 import {
   User,
@@ -23,6 +25,7 @@ import {
   getSessions,
   revokeSession,
   revokeAllSessions,
+  deleteAccount,
 } from "../services/api.service";
 
 interface SessionData {
@@ -47,6 +50,8 @@ export function SettingsPage() {
     "profile" | "workspace" | "devices"
   >("profile");
   const { user, updateUser, logout } = useAuthStore();
+  const { theme, toggleTheme, colors, updateColor, resetColors } =
+    useThemeStore();
 
   // ── 2FA ──────────────────────────────────────────────────────────────────
   const [qrCode, setQrCode] = useState<string | null>(null);
@@ -131,8 +136,6 @@ export function SettingsPage() {
   // ── Dispositivos ──────────────────────────────────────────────────────────
   const [sessions, setSessions] = useState<SessionData[]>([]);
   const [sessionsLoading, setSessionsLoading] = useState(true);
-
-  // Modal de confirmación
   const [confirmModal, setConfirmModal] = useState<{
     sessionId: string;
     device: string;
@@ -167,21 +170,14 @@ export function SettingsPage() {
       setConfirmError("La contraseña es obligatoria.");
       return;
     }
-
     setConfirmLoading(true);
     setConfirmError(null);
-
     try {
       await revokeSession(confirmModal.sessionId, confirmPassword);
       setSessions((prev) =>
         prev.filter((s) => s.id !== confirmModal.sessionId),
       );
-
-      // Si eliminaste tu propia sesión, haz logout automático
-      if (confirmModal.isCurrent) {
-        logout();
-      }
-
+      if (confirmModal.isCurrent) logout();
       setConfirmModal(null);
     } catch (err) {
       setConfirmError(
@@ -197,6 +193,30 @@ export function SettingsPage() {
     setSessions((prev) => prev.filter((s) => s.isCurrent));
   };
 
+  // ── Eliminar cuenta ───────────────────────────────────────────────────────
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [deletePassword, setDeletePassword] = useState("");
+  const [deleteError, setDeleteError] = useState<string | null>(null);
+  const [deleteLoading, setDeleteLoading] = useState(false);
+
+  const handleDeleteAccount = async () => {
+    if (!deletePassword.trim()) {
+      setDeleteError("La contraseña es obligatoria.");
+      return;
+    }
+    setDeleteLoading(true);
+    setDeleteError(null);
+    try {
+      await deleteAccount(deletePassword);
+      logout();
+    } catch (err) {
+      setDeleteError(
+        err instanceof Error ? err.message : "Error al eliminar la cuenta.",
+      );
+      setDeleteLoading(false);
+    }
+  };
+
   return (
     <div
       style={{
@@ -207,7 +227,7 @@ export function SettingsPage() {
     >
       <Sidebar />
 
-      {/* Modal de confirmación */}
+      {/* Modal confirmar revocar sesión */}
       {confirmModal && (
         <div
           style={{
@@ -282,7 +302,6 @@ export function SettingsPage() {
                 <X size={16} />
               </button>
             </div>
-
             {confirmModal.isCurrent && (
               <div
                 style={{
@@ -298,7 +317,6 @@ export function SettingsPage() {
                 </p>
               </div>
             )}
-
             <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
               <label
                 style={{
@@ -310,8 +328,7 @@ export function SettingsPage() {
                   gap: 6,
                 }}
               >
-                <Lock size={12} />
-                Confirma tu contraseña
+                <Lock size={12} /> Confirma tu contraseña
               </label>
               <input
                 type="password"
@@ -349,7 +366,6 @@ export function SettingsPage() {
                 </p>
               )}
             </div>
-
             <div
               style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}
             >
@@ -383,6 +399,190 @@ export function SettingsPage() {
                 }}
               >
                 {confirmLoading ? "Verificando..." : "Cerrar sesión"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal eliminar cuenta */}
+      {showDeleteModal && (
+        <div
+          style={{
+            position: "fixed",
+            inset: 0,
+            zIndex: 100,
+            background: "rgba(0,0,0,0.7)",
+            backdropFilter: "blur(4px)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            padding: 24,
+          }}
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setShowDeleteModal(false);
+          }}
+        >
+          <div
+            style={{
+              background: "var(--color-bg-card)",
+              border: "1px solid var(--color-danger)",
+              borderRadius: "var(--radius-xl)",
+              padding: 28,
+              width: "100%",
+              maxWidth: 420,
+              display: "flex",
+              flexDirection: "column",
+              gap: 20,
+            }}
+          >
+            <div
+              style={{
+                display: "flex",
+                alignItems: "flex-start",
+                justifyContent: "space-between",
+              }}
+            >
+              <div>
+                <h3
+                  style={{
+                    fontSize: 16,
+                    fontWeight: 600,
+                    color: "var(--color-danger)",
+                    marginBottom: 4,
+                  }}
+                >
+                  Eliminar cuenta permanentemente
+                </h3>
+                <p
+                  style={{
+                    fontSize: 13,
+                    color: "var(--color-text-secondary)",
+                    lineHeight: 1.6,
+                  }}
+                >
+                  Esta acción es irreversible. Se borrarán todos tus datos,
+                  análisis, snapshots y configuraciones.
+                </p>
+              </div>
+              <button
+                onClick={() => setShowDeleteModal(false)}
+                style={{
+                  background: "none",
+                  border: "none",
+                  cursor: "pointer",
+                  color: "var(--color-text-muted)",
+                  padding: 4,
+                }}
+              >
+                <X size={16} />
+              </button>
+            </div>
+            <div
+              style={{
+                padding: "12px 16px",
+                background: "var(--color-danger-dim)",
+                border: "1px solid var(--color-danger)",
+                borderRadius: "var(--radius-md)",
+              }}
+            >
+              <p
+                style={{
+                  fontSize: 13,
+                  color: "var(--color-danger)",
+                  lineHeight: 1.6,
+                }}
+              >
+                ⚠️ Se eliminarán permanentemente: tu perfil, todos tus análisis
+                financieros, historial de snapshots y configuración de alertas.
+              </p>
+            </div>
+            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+              <label
+                style={{
+                  fontSize: 12,
+                  fontWeight: 500,
+                  color: "var(--color-text-secondary)",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 6,
+                }}
+              >
+                <Lock size={12} /> Confirma tu contraseña para continuar
+              </label>
+              <input
+                type="password"
+                value={deletePassword}
+                onChange={(e) => {
+                  setDeletePassword(e.target.value);
+                  setDeleteError(null);
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") handleDeleteAccount();
+                }}
+                placeholder="Tu contraseña actual"
+                autoFocus
+                style={{
+                  padding: "10px 14px",
+                  fontSize: 13,
+                  borderRadius: "var(--radius-md)",
+                  background: "var(--color-bg-elevated)",
+                  border: `1px solid ${deleteError ? "var(--color-danger)" : "var(--color-border-hover)"}`,
+                  color: "var(--color-text-primary)",
+                  outline: "none",
+                }}
+              />
+              {deleteError && (
+                <p
+                  style={{
+                    fontSize: 12,
+                    color: "var(--color-danger)",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 4,
+                  }}
+                >
+                  <AlertCircle size={12} /> {deleteError}
+                </p>
+              )}
+            </div>
+            <div
+              style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}
+            >
+              <button
+                onClick={() => {
+                  setShowDeleteModal(false);
+                  setDeletePassword("");
+                  setDeleteError(null);
+                }}
+                style={{
+                  padding: "8px 16px",
+                  background: "transparent",
+                  border: "1px solid var(--color-border)",
+                  borderRadius: "var(--radius-md)",
+                  color: "var(--color-text-secondary)",
+                  cursor: "pointer",
+                  fontSize: 13,
+                }}
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={handleDeleteAccount}
+                disabled={deleteLoading || !deletePassword.trim()}
+                style={{
+                  padding: "8px 16px",
+                  background: "var(--color-danger)",
+                  border: "none",
+                  borderRadius: "var(--radius-md)",
+                  color: "white",
+                  cursor: deletePassword.trim() ? "pointer" : "not-allowed",
+                  fontSize: 13,
+                  fontWeight: 500,
+                  opacity: deletePassword.trim() ? 1 : 0.5,
+                }}
+              >
+                {deleteLoading ? "Eliminando..." : "Eliminar mi cuenta"}
               </button>
             </div>
           </div>
@@ -473,6 +673,7 @@ export function SettingsPage() {
               <div
                 style={{ display: "flex", flexDirection: "column", gap: 24 }}
               >
+                {/* Info Personal */}
                 <div
                   style={{
                     background: "var(--color-bg-card)",
@@ -958,6 +1159,305 @@ export function SettingsPage() {
                     </div>
                   )}
                 </div>
+
+                {/* ── Apariencia ── */}
+                <div
+                  style={{
+                    background: "var(--color-bg-card)",
+                    border: "1px solid var(--color-border)",
+                    borderRadius: "var(--radius-lg)",
+                    padding: 24,
+                  }}
+                >
+                  <div
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 8,
+                      marginBottom: 20,
+                    }}
+                  >
+                    <Palette size={18} color="var(--color-accent)" />
+                    <h2
+                      style={{
+                        fontSize: 16,
+                        fontWeight: 600,
+                        color: "var(--color-text-primary)",
+                      }}
+                    >
+                      Apariencia
+                    </h2>
+                  </div>
+
+                  {/* Toggle tema */}
+                  <div
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "space-between",
+                      marginBottom: 24,
+                      padding: "14px 16px",
+                      background: "var(--color-bg-elevated)",
+                      borderRadius: "var(--radius-md)",
+                      border: "1px solid var(--color-border)",
+                    }}
+                  >
+                    <div
+                      style={{ display: "flex", alignItems: "center", gap: 10 }}
+                    >
+                      {theme === "dark" ? (
+                        <Moon size={16} color="var(--color-accent)" />
+                      ) : (
+                        <Sun size={16} color="var(--color-warning)" />
+                      )}
+                      <div>
+                        <p
+                          style={{
+                            fontSize: 13,
+                            fontWeight: 500,
+                            color: "var(--color-text-primary)",
+                          }}
+                        >
+                          Modo {theme === "dark" ? "oscuro" : "claro"}
+                        </p>
+                        <p
+                          style={{
+                            fontSize: 12,
+                            color: "var(--color-text-muted)",
+                          }}
+                        >
+                          {theme === "dark"
+                            ? "Tema dark premium activo"
+                            : "Tema light activo"}
+                        </p>
+                      </div>
+                    </div>
+                    <button
+                      onClick={toggleTheme}
+                      style={{
+                        width: 44,
+                        height: 24,
+                        borderRadius: 12,
+                        background:
+                          theme === "dark"
+                            ? "var(--color-accent)"
+                            : "var(--color-border-hover)",
+                        border: "none",
+                        cursor: "pointer",
+                        position: "relative",
+                        transition: "background 0.2s",
+                      }}
+                    >
+                      <div
+                        style={{
+                          position: "absolute",
+                          top: 2,
+                          left: theme === "dark" ? 22 : 2,
+                          width: 20,
+                          height: 20,
+                          borderRadius: "50%",
+                          background: "white",
+                          transition: "left 0.2s",
+                          boxShadow: "0 1px 4px rgba(0,0,0,0.3)",
+                        }}
+                      />
+                    </button>
+                  </div>
+
+                  {/* Colores personalizables */}
+                  <div
+                    style={{
+                      display: "flex",
+                      flexDirection: "column",
+                      gap: 12,
+                    }}
+                  >
+                    <div
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "space-between",
+                        marginBottom: 4,
+                      }}
+                    >
+                      <p
+                        style={{
+                          fontSize: 12,
+                          fontWeight: 500,
+                          color: "var(--color-text-secondary)",
+                          textTransform: "uppercase",
+                          letterSpacing: "0.05em",
+                        }}
+                      >
+                        Colores del sistema
+                      </p>
+                      <button
+                        onClick={resetColors}
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          gap: 4,
+                          fontSize: 11,
+                          color: "var(--color-text-muted)",
+                          background: "none",
+                          border: "none",
+                          cursor: "pointer",
+                        }}
+                      >
+                        <RotateCcw size={11} /> Restaurar
+                      </button>
+                    </div>
+
+                    {[
+                      {
+                        key: "accent" as const,
+                        label: "Color principal",
+                        description: "Botones, iconos activos, links",
+                      },
+                      {
+                        key: "success" as const,
+                        label: "Éxito / Ingresos",
+                        description: "KPIs positivos, confirmaciones",
+                      },
+                      {
+                        key: "danger" as const,
+                        label: "Peligro / Gastos",
+                        description: "Alertas, anomalías, gastos",
+                      },
+                      {
+                        key: "warning" as const,
+                        label: "Advertencia",
+                        description: "Avisos, estados intermedios",
+                      },
+                    ].map(({ key, label, description }) => (
+                      <div
+                        key={key}
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "space-between",
+                          padding: "12px 14px",
+                          background: "var(--color-bg-elevated)",
+                          borderRadius: "var(--radius-md)",
+                          border: "1px solid var(--color-border)",
+                        }}
+                      >
+                        <div
+                          style={{
+                            display: "flex",
+                            alignItems: "center",
+                            gap: 12,
+                          }}
+                        >
+                          <div
+                            style={{
+                              width: 32,
+                              height: 32,
+                              borderRadius: 8,
+                              background: colors[key],
+                              boxShadow: `0 0 12px ${colors[key]}40`,
+                              flexShrink: 0,
+                            }}
+                          />
+                          <div>
+                            <p
+                              style={{
+                                fontSize: 13,
+                                fontWeight: 500,
+                                color: "var(--color-text-primary)",
+                              }}
+                            >
+                              {label}
+                            </p>
+                            <p
+                              style={{
+                                fontSize: 11,
+                                color: "var(--color-text-muted)",
+                              }}
+                            >
+                              {description}
+                            </p>
+                          </div>
+                        </div>
+                        <input
+                          type="color"
+                          value={colors[key]}
+                          onChange={(e) => updateColor(key, e.target.value)}
+                          style={{
+                            width: 36,
+                            height: 36,
+                            borderRadius: 8,
+                            border: "1px solid var(--color-border)",
+                            cursor: "pointer",
+                            background: "transparent",
+                            padding: 2,
+                          }}
+                        />
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Zona de peligro */}
+                <div
+                  style={{
+                    background: "var(--color-bg-card)",
+                    border: "1px solid var(--color-danger)",
+                    borderRadius: "var(--radius-lg)",
+                    padding: 24,
+                  }}
+                >
+                  <h2
+                    style={{
+                      fontSize: 16,
+                      fontWeight: 600,
+                      color: "var(--color-danger)",
+                      marginBottom: 8,
+                    }}
+                  >
+                    Zona de peligro
+                  </h2>
+                  <p
+                    style={{
+                      fontSize: 14,
+                      color: "var(--color-text-secondary)",
+                      marginBottom: 16,
+                      lineHeight: 1.6,
+                    }}
+                  >
+                    Una vez que elimines tu cuenta no hay vuelta atrás. Todos
+                    tus datos serán borrados permanentemente.
+                  </p>
+                  <button
+                    onClick={() => {
+                      setShowDeleteModal(true);
+                      setDeletePassword("");
+                      setDeleteError(null);
+                    }}
+                    style={{
+                      padding: "10px 20px",
+                      background: "var(--color-danger-dim)",
+                      border: "1px solid var(--color-danger)",
+                      borderRadius: "var(--radius-md)",
+                      color: "var(--color-danger)",
+                      cursor: "pointer",
+                      fontSize: 14,
+                      fontWeight: 500,
+                      transition: "all 0.15s",
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.background = "var(--color-danger)";
+                      e.currentTarget.style.color = "white";
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.background =
+                        "var(--color-danger-dim)";
+                      e.currentTarget.style.color = "var(--color-danger)";
+                    }}
+                  >
+                    Eliminar mi cuenta
+                  </button>
+                </div>
               </div>
             )}
 
@@ -1094,8 +1594,7 @@ export function SettingsPage() {
                           cursor: "pointer",
                         }}
                       >
-                        <LogOut size={12} />
-                        Cerrar todas las demás
+                        <LogOut size={12} /> Cerrar todas las demás
                       </button>
                     )}
                   </div>
