@@ -8,6 +8,8 @@ import { HistoryPage } from "./pages/HistoryPage";
 import { SettingsPage } from "./pages/SettingsPage";
 import { ProtectedRoute } from "./components/layout/ProtectedRoute";
 import { AuthCallbackPage } from "./pages/AuthCallbackPage";
+import { TeamPage } from "./pages/TeamPage";
+import { JoinPage } from "./pages/JoinPage"; // <-- Añadido el import de la nueva página
 
 export function App() {
   return (
@@ -23,11 +25,23 @@ export function App() {
         <Route path="/" element={<LandingPage />} />
         <Route path="/auth" element={<AuthPage />} />
         <Route path="/auth/callback" element={<AuthCallbackPage />} />
+
+        {/* LA PUERTA DE INVITADOS (Sin proteger para que puedan entrar al link) */}
+        <Route path="/join/:code" element={<JoinPage />} />
+
         <Route
           path="/dashboard"
           element={
             <ProtectedRoute>
               <DashboardPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/team"
+          element={
+            <ProtectedRoute>
+              <TeamPage />
             </ProtectedRoute>
           }
         />

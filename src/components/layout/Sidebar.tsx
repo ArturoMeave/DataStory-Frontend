@@ -8,13 +8,11 @@ import {
   LogOut,
 } from "lucide-react";
 import { useAuthStore } from "../../stores/authStore";
-import { useDataStore } from "../../stores/dataStore";
 
-// 1. EL PASILLO LIMPIO: Solo las puertas esenciales
 const navItems = [
   { icon: LayoutDashboard, label: "Dashboard", path: "/dashboard" },
-  { icon: Users, label: "Team", path: "/team" }, // Futura sala de empleados
-  { icon: FileText, label: "Reports", path: "/history" }, // Conectado al Historial
+  { icon: Users, label: "Team", path: "/team" }, // <-- ESTA ES LA PUERTA CORRECTA
+  { icon: FileText, label: "Reports", path: "/history" },
   { icon: Settings, label: "Settings", path: "/settings" },
 ];
 
@@ -22,13 +20,6 @@ export function Sidebar() {
   const navigate = useNavigate();
   const location = useLocation();
   const { logout } = useAuthStore();
-  const { resetData } = useDataStore();
-
-  const handleLogout = () => {
-    logout();
-    resetData();
-    navigate("/auth");
-  };
 
   return (
     <aside
@@ -38,60 +29,39 @@ export function Sidebar() {
         position: "fixed",
         left: 0,
         top: 0,
-        bottom: 0,
-        zIndex: 30,
-        display: "flex",
-        flexDirection: "column",
         background: "var(--color-bg-card)",
-        backdropFilter: "blur(16px)",
         borderRight: "1px solid var(--color-border)",
         padding: "32px 20px",
+        zIndex: 30,
       }}
     >
-      {/* LOGO */}
       <div
         style={{
           display: "flex",
           alignItems: "center",
           gap: 12,
           marginBottom: 48,
-          paddingLeft: 8,
         }}
       >
         <div
           style={{
             width: 32,
             height: 32,
-            borderRadius: "var(--radius-sm)",
+            borderRadius: 8,
             background: "var(--color-accent)",
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
           }}
         >
-          <span style={{ color: "white", fontWeight: "bold", fontSize: 18 }}>
-            X
-          </span>
+          <span style={{ color: "white", fontWeight: "bold" }}>X</span>
         </div>
-        <span
-          style={{
-            fontSize: 22,
-            fontWeight: 600,
-            color: "var(--color-text-primary)",
-          }}
-        >
-          Outrunix
-        </span>
+        <span style={{ fontSize: 20, fontWeight: 600 }}>Outrunix</span>
       </div>
 
-      {/* NAVEGACIÓN PRINCIPAL */}
-      <nav
-        style={{ flex: 1, display: "flex", flexDirection: "column", gap: 8 }}
-      >
+      <nav style={{ display: "flex", flexDirection: "column", gap: 8 }}>
         {navItems.map(({ icon: Icon, label, path }) => {
-          const active =
-            location.pathname === path ||
-            (path === "/dashboard" && location.pathname === "/");
+          const active = location.pathname === path;
           return (
             <button
               key={label}
@@ -99,85 +69,50 @@ export function Sidebar() {
               style={{
                 display: "flex",
                 alignItems: "center",
-                gap: 14,
+                gap: 12,
                 width: "100%",
-                padding: "12px 18px",
-                borderRadius: "var(--radius-xl)",
+                padding: "12px 16px",
+                borderRadius: 100,
                 background: active ? "var(--color-accent)" : "transparent",
                 border: "none",
+                color: active ? "white" : "var(--color-text-secondary)",
                 cursor: "pointer",
-                transition: "all 0.2s ease",
                 textAlign: "left",
               }}
-              onMouseEnter={(e) => {
-                if (!active)
-                  e.currentTarget.style.color = "var(--color-text-primary)";
-              }}
-              onMouseLeave={(e) => {
-                if (!active)
-                  e.currentTarget.style.color = "var(--color-text-secondary)";
-              }}
             >
-              <Icon size={20} color={active ? "#ffffff" : "currentColor"} />
-              <span
-                style={{
-                  fontSize: 15,
-                  fontWeight: 500,
-                  color: active ? "#ffffff" : "var(--color-text-secondary)",
-                }}
-              >
-                {label}
-              </span>
+              <Icon size={18} />
+              <span style={{ fontWeight: 500 }}>{label}</span>
             </button>
           );
         })}
       </nav>
 
-      {/* BOTONES INFERIORES */}
       <div
         style={{
+          marginTop: "auto",
           display: "flex",
           flexDirection: "column",
           gap: 8,
-          marginTop: "auto",
+          position: "absolute",
+          bottom: 32,
+          left: 20,
+          right: 20,
         }}
       >
         <button
+          onClick={logout}
           style={{
             display: "flex",
             alignItems: "center",
-            gap: 14,
-            width: "100%",
-            padding: "12px 18px",
-            borderRadius: "var(--radius-xl)",
-            background: "transparent",
-            border: "none",
-            cursor: "pointer",
-            color: "var(--color-text-secondary)",
-            textAlign: "left",
-          }}
-        >
-          <HelpCircle size={20} />
-          <span style={{ fontSize: 15, fontWeight: 500 }}>Help</span>
-        </button>
-        <button
-          onClick={handleLogout}
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: 14,
-            width: "100%",
-            padding: "12px 18px",
-            borderRadius: "var(--radius-xl)",
-            background: "transparent",
-            border: "none",
-            cursor: "pointer",
+            gap: 12,
+            padding: "12px 16px",
             color: "var(--color-danger)",
-            textAlign: "left",
+            background: "transparent",
+            border: "none",
+            cursor: "pointer",
           }}
         >
-          <LogOut size={20} />
-          <span style={{ fontSize: 15, fontWeight: 500 }}>Log Out</span>
+          <LogOut size={18} /> <span>Log Out</span>
         </button>
       </div>
     </aside>
