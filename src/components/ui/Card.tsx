@@ -1,4 +1,5 @@
 import React from "react";
+import { SpotlightCard } from "./SpotlightCard";
 
 type GlowColor = "none" | "accent" | "success" | "danger" | "warning";
 type Padding = "none" | "sm" | "md" | "lg";
@@ -13,46 +14,36 @@ interface CardProps {
   onClick?: () => void;
 }
 
-const glowMap: Record<GlowColor, string> = {
-  none: "none",
-  accent: "0 0 28px var(--color-accent-dim)",
-  success: "0 0 28px var(--color-success-dim)",
-  danger: "0 0 28px var(--color-danger-dim)",
-  warning: "0 0 28px var(--color-warning-dim)",
-};
-
 const paddingMap: Record<Padding, string> = {
   none: "0",
-  sm: "14px",
-  md: "20px",
-  lg: "28px",
+  sm: "12px",
+  md: "16px", // Reducido (antes era 20)
+  lg: "20px", // Reducido (antes era 28)
 };
 
 export function Card({
   children,
   className = "",
-  glow = "none",
   padding = "md",
   style,
   id,
   onClick,
 }: CardProps) {
+  // Ahora TODAS las tarjetas de tu app son magnéticas y compactas automáticamente
   return (
-    <div
-      id={id}
-      className={className}
-      onClick={onClick}
-      style={{
-        background: "var(--color-bg-card)",
-        border: "1px solid var(--color-border)",
-        borderRadius: "var(--radius-lg)",
-        padding: paddingMap[padding],
-        boxShadow: glowMap[glow],
-        transition: "box-shadow 0.3s ease",
-        ...style,
-      }}
-    >
-      {children}
+    <div id={id} onClick={onClick} style={{ height: "100%" }}>
+      <SpotlightCard
+        className={className}
+        style={{
+          padding: paddingMap[padding],
+          height: "100%",
+          display: "flex",
+          flexDirection: "column",
+          ...style,
+        }}
+      >
+        {children}
+      </SpotlightCard>
     </div>
   );
 }

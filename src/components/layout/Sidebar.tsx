@@ -1,38 +1,39 @@
 import { useNavigate, useLocation } from "react-router-dom";
 import {
-  BarChart2,
   LayoutDashboard,
-  LineChart,
-  History,
+  Users,
+  FileText,
   Settings,
-  User,
+  HelpCircle,
   LogOut,
 } from "lucide-react";
 import { useAuthStore } from "../../stores/authStore";
 import { useDataStore } from "../../stores/dataStore";
 
+// 1. EL PASILLO LIMPIO: Solo las puertas esenciales
 const navItems = [
   { icon: LayoutDashboard, label: "Dashboard", path: "/dashboard" },
-  { icon: LineChart, label: "Analysis", path: "/dashboard" },
-  { icon: History, label: "History", path: "/history" },
+  { icon: Users, label: "Team", path: "/team" }, // Futura sala de empleados
+  { icon: FileText, label: "Reports", path: "/history" }, // Conectado al Historial
   { icon: Settings, label: "Settings", path: "/settings" },
 ];
 
 export function Sidebar() {
   const navigate = useNavigate();
   const location = useLocation();
-  const { user, logout } = useAuthStore();
+  const { logout } = useAuthStore();
   const { resetData } = useDataStore();
 
   const handleLogout = () => {
     logout();
     resetData();
+    navigate("/auth");
   };
 
   return (
     <aside
       style={{
-        width: 220,
+        width: 260,
         minHeight: "100vh",
         position: "fixed",
         left: 0,
@@ -41,66 +42,56 @@ export function Sidebar() {
         zIndex: 30,
         display: "flex",
         flexDirection: "column",
-        background: "var(--glass-bg)",
-        backdropFilter: "var(--glass-blur)",
-        WebkitBackdropFilter: "var(--glass-blur)",
-        borderRight: "1px solid var(--glass-border)",
-        boxShadow: "var(--glass-shadow)",
+        background: "var(--color-bg-card)",
+        backdropFilter: "blur(16px)",
+        borderRight: "1px solid var(--color-border)",
+        padding: "32px 20px",
       }}
     >
-      {/* Logo */}
-      <div style={{ padding: "28px 20px 20px" }}>
+      {/* LOGO */}
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: 12,
+          marginBottom: 48,
+          paddingLeft: 8,
+        }}
+      >
         <div
           style={{
+            width: 32,
+            height: 32,
+            borderRadius: "var(--radius-sm)",
+            background: "var(--color-accent)",
             display: "flex",
             alignItems: "center",
-            gap: 8,
-            marginBottom: 4,
+            justifyContent: "center",
           }}
         >
-          <div
-            style={{
-              width: 30,
-              height: 30,
-              borderRadius: 8,
-              background: "var(--color-accent-dim)",
-              border: "1px solid var(--color-accent)",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              flexShrink: 0,
-              boxShadow: "0 0 12px var(--color-accent-dim)",
-            }}
-          >
-            <BarChart2 size={14} color="var(--color-accent)" />
-          </div>
-          <span
-            style={{
-              fontSize: 14,
-              fontWeight: 700,
-              color: "var(--color-text-primary)",
-              letterSpacing: "-0.02em",
-            }}
-          >
-            DATASTORY
+          <span style={{ color: "white", fontWeight: "bold", fontSize: 18 }}>
+            X
           </span>
         </div>
-        <p
+        <span
           style={{
-            fontSize: 9,
-            color: "var(--color-text-muted)",
-            letterSpacing: "0.1em",
-            paddingLeft: 38,
+            fontSize: 22,
+            fontWeight: 600,
+            color: "var(--color-text-primary)",
           }}
         >
-          FINANCIAL INTELLIGENCE
-        </p>
+          Outrunix
+        </span>
       </div>
 
-      {/* Nav */}
-      <nav style={{ flex: 1, padding: "4px 10px" }}>
+      {/* NAVEGACIÓN PRINCIPAL */}
+      <nav
+        style={{ flex: 1, display: "flex", flexDirection: "column", gap: 8 }}
+      >
         {navItems.map(({ icon: Icon, label, path }) => {
-          const active = location.pathname === path;
+          const active =
+            location.pathname === path ||
+            (path === "/dashboard" && location.pathname === "/");
           return (
             <button
               key={label}
@@ -108,43 +99,31 @@ export function Sidebar() {
               style={{
                 display: "flex",
                 alignItems: "center",
-                gap: 10,
+                gap: 14,
                 width: "100%",
-                padding: "9px 12px",
-                borderRadius: 10,
-                marginBottom: 2,
-                background: active ? "var(--color-accent-dim)" : "transparent",
-                border: active
-                  ? "1px solid rgba(124,106,255,0.2)"
-                  : "1px solid transparent",
-                borderLeft: active
-                  ? "3px solid var(--color-accent)"
-                  : "3px solid transparent",
+                padding: "12px 18px",
+                borderRadius: "var(--radius-xl)",
+                background: active ? "var(--color-accent)" : "transparent",
+                border: "none",
                 cursor: "pointer",
-                transition: "all 0.15s ease",
+                transition: "all 0.2s ease",
                 textAlign: "left",
               }}
               onMouseEnter={(e) => {
                 if (!active)
-                  e.currentTarget.style.background = "rgba(255,255,255,0.04)";
+                  e.currentTarget.style.color = "var(--color-text-primary)";
               }}
               onMouseLeave={(e) => {
-                if (!active) e.currentTarget.style.background = "transparent";
+                if (!active)
+                  e.currentTarget.style.color = "var(--color-text-secondary)";
               }}
             >
-              <Icon
-                size={15}
-                color={
-                  active ? "var(--color-accent)" : "var(--color-text-muted)"
-                }
-              />
+              <Icon size={20} color={active ? "#ffffff" : "currentColor"} />
               <span
                 style={{
-                  fontSize: 13,
-                  fontWeight: active ? 500 : 400,
-                  color: active
-                    ? "var(--color-accent)"
-                    : "var(--color-text-secondary)",
+                  fontSize: 15,
+                  fontWeight: 500,
+                  color: active ? "#ffffff" : "var(--color-text-secondary)",
                 }}
               >
                 {label}
@@ -154,102 +133,51 @@ export function Sidebar() {
         })}
       </nav>
 
-      {/* User + logout */}
+      {/* BOTONES INFERIORES */}
       <div
         style={{
-          padding: "12px 10px",
-          borderTop: "1px solid var(--glass-border)",
+          display: "flex",
+          flexDirection: "column",
+          gap: 8,
+          marginTop: "auto",
         }}
       >
         <button
-          onClick={() => navigate("/settings")}
           style={{
             display: "flex",
             alignItems: "center",
-            gap: 10,
+            gap: 14,
             width: "100%",
-            padding: "9px 12px",
-            borderRadius: 10,
+            padding: "12px 18px",
+            borderRadius: "var(--radius-xl)",
             background: "transparent",
             border: "none",
             cursor: "pointer",
-            marginBottom: 4,
-            transition: "background 0.15s",
-          }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.background = "rgba(255,255,255,0.04)";
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.background = "transparent";
+            color: "var(--color-text-secondary)",
+            textAlign: "left",
           }}
         >
-          <div
-            style={{
-              width: 28,
-              height: 28,
-              borderRadius: "50%",
-              background: "var(--color-accent-dim)",
-              border: "1px solid var(--color-accent)",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              flexShrink: 0,
-            }}
-          >
-            <User size={12} color="var(--color-accent)" />
-          </div>
-          <div style={{ minWidth: 0, textAlign: "left" }}>
-            <p
-              style={{
-                fontSize: 12,
-                fontWeight: 500,
-                color: "var(--color-text-primary)",
-                overflow: "hidden",
-                textOverflow: "ellipsis",
-                whiteSpace: "nowrap",
-              }}
-            >
-              {user?.name ?? "Usuario"}
-            </p>
-            <p
-              style={{
-                fontSize: 10,
-                color: "var(--color-text-muted)",
-                overflow: "hidden",
-                textOverflow: "ellipsis",
-                whiteSpace: "nowrap",
-              }}
-            >
-              {user?.email}
-            </p>
-          </div>
+          <HelpCircle size={20} />
+          <span style={{ fontSize: 15, fontWeight: 500 }}>Help</span>
         </button>
-
         <button
           onClick={handleLogout}
           style={{
             display: "flex",
             alignItems: "center",
-            gap: 10,
+            gap: 14,
             width: "100%",
-            padding: "9px 12px",
-            borderRadius: 10,
+            padding: "12px 18px",
+            borderRadius: "var(--radius-xl)",
             background: "transparent",
             border: "none",
             cursor: "pointer",
-            transition: "background 0.15s",
-          }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.background = "rgba(244,63,94,0.08)";
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.background = "transparent";
+            color: "var(--color-danger)",
+            textAlign: "left",
           }}
         >
-          <LogOut size={14} color="var(--color-danger)" />
-          <span style={{ fontSize: 13, color: "var(--color-danger)" }}>
-            Logout
-          </span>
+          <LogOut size={20} />
+          <span style={{ fontSize: 15, fontWeight: 500 }}>Log Out</span>
         </button>
       </div>
     </aside>

@@ -12,6 +12,13 @@ import { AuthCallbackPage } from "./pages/AuthCallbackPage";
 export function App() {
   return (
     <BrowserRouter>
+      {/* ── ESTE ES EL FONDO MÁGICO PARA TODA LA WEB ── */}
+      <div className="premium-bg">
+        <div className="orb-1"></div>
+        <div className="orb-2"></div>
+      </div>
+      {/* ────────────────────────────────────────────── */}
+
       <Routes>
         <Route path="/" element={<LandingPage />} />
         <Route path="/auth" element={<AuthPage />} />

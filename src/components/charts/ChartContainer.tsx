@@ -13,16 +13,16 @@ export function ChartContainer({
   id,
   title,
   subtitle,
-  height = 280,
+  height = 240, // Altura reducida de 280 a 240
   children,
 }: ChartContainerProps) {
   return (
-    <Card id={id} style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+    <Card id={id} style={{ display: "flex", flexDirection: "column", gap: 12 }}>
       <div>
         <p
           style={{
             fontSize: 14,
-            fontWeight: 500,
+            fontWeight: 600,
             color: "var(--color-text-primary)",
             marginBottom: 2,
           }}
