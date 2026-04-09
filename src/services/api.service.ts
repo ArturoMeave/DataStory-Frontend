@@ -225,23 +225,18 @@ export async function deleteAccount(
   });
 }
 
-// ── EQUIPO ──
 export async function getWorkspaceMembers() {
-  // Antes: "/workspaces/members" -> Ahora añadimos /api al principio
   return request("/api/workspaces/members");
 }
 
 export async function updateMemberRole(userId: string, role: string) {
-  // Antes: "/workspaces/members/..." -> Ahora añadimos /api al principio
   return request(`/api/workspaces/members/${userId}/role`, {
     method: "PUT",
     body: JSON.stringify({ role }),
   });
 }
 
-// ── INVITACIONES ──
 export async function generateInvitation(role: string) {
-  // Es vital que empiece por /api para que el servidor lo reconozca
   return request("/api/invitations/generate", {
     method: "POST",
     body: JSON.stringify({ role }),
