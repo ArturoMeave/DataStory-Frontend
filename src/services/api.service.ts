@@ -15,24 +15,20 @@ async function request<T>(endpoint: string, options?: RequestInit): Promise<T> {
   if (!response.ok) {
     const errorData = await response
       .json()
-      .catch(() => ({ error: "Error desconocido" }));
+      .catch(() => ({ error: "Unknown error" }));
     throw new Error(errorData.error ?? `Error ${response.status}`);
   }
 
   return response.json() as Promise<T>;
 }
 
-
-
 export async function generateSummary(dataSummary: string): Promise<string> {
   const data = await request<{ content: string }>("/api/ai/generate", {
     method: "POST",
     body: JSON.stringify({
       prompt: dataSummary,
-      systemPrompt: `Eres un analista financiero conciso para pequeñas empresas.
-Recibes un resumen de datos financieros y respondes con un análisis claro de 2-3 párrafos.
-No uses listas con guiones. No uses markdown. Escribe en español en prosa directa.
-Destaca lo más importante: si van bien o mal respecto a la meta, la tendencia y el mayor riesgo.`,
+      systemPrompt:
+        "Eres un analista financiero conciso. Recibes un resumen de datos financieros y respondes con un análisis claro de 2-3 párrafos. No uses listas con guiones. No uses markdown. Escribe en español en prosa directa. Destaca lo más importante: metas, tendencias y riesgos.",
       maxTokens: 400,
     }),
   });
@@ -44,9 +40,8 @@ export async function generateTasks(dataSummary: string): Promise<string> {
     method: "POST",
     body: JSON.stringify({
       prompt: dataSummary,
-      systemPrompt: `Eres un consultor de negocio. A partir de los datos financieros devuelves SOLO un JSON válido, sin markdown ni texto extra.
-El formato es exactamente: [{"text": "acción concreta", "priority": "high|medium|low"}]
-Genera exactamente 3 tareas accionables y específicas basadas en los datos.`,
+      systemPrompt:
+        'Eres un consultor de negocio. A partir de los datos devuelve SOLO un JSON válido. Formato: [{"text": "acción", "priority": "high|medium|low"}]. Genera 3 tareas.',
       maxTokens: 400,
     }),
   });
@@ -66,29 +61,17 @@ export async function chatWithData(
   const data = await request<{ content: string }>("/api/ai/generate", {
     method: "POST",
     body: JSON.stringify({
-      prompt: `${historyText ? `Conversación previa:\n${historyText}\n\n` : ""}Pregunta: ${question}`,
-      systemPrompt: `Eres un asistente financiero. Respondes preguntas sobre los datos del usuario.
-Contexto de los datos: ${dataSummary}
-Responde en español, de forma concisa y directa.`,
+      prompt: `${historyText ? `Historial:\n${historyText}\n\n` : ""}Pregunta: ${question}`,
+      systemPrompt: `Eres un asistente financiero. Contexto: ${dataSummary}. Responde en español, de forma concisa y directa.`,
       maxTokens: 400,
     }),
   });
   return data.content;
 }
 
-
-
-export async function saveSnapshot(snapshotData: {
-  userId: string;
-  totalRevenue: number;
-  totalExpenses: number;
-  netProfit: number;
-  periodCount: number;
-  anomalyCount: number;
-  goalAmount?: number;
-  aiSummary?: string;
-  recentPeriods: Array<{ date: string; revenue: number; expenses: number }>;
-}): Promise<{ ok: boolean; id: string }> {
+export async function saveSnapshot(
+  snapshotData: any,
+): Promise<{ ok: boolean; id: string }> {
   return request("/api/snapshots", {
     method: "POST",
     body: JSON.stringify(snapshotData),
@@ -99,55 +82,24 @@ export async function registerUser(
   email: string,
   password: string,
   name?: string,
-): Promise<{
-  token: string;
-  user: { id: string; email: string; name: string | null };
-}> {
+): Promise<any> {
   return request("/api/auth/register", {
     method: "POST",
     body: JSON.stringify({ email, password, name }),
   });
 }
 
-export async function loginUser(
-  email: string,
-  password: string,
-): Promise<{
-  token?: string;
-  user?: { id: string; email: string; name: string | null };
-  requiresTwoFactor?: boolean;
-  userId?: string;
-}> {
+export async function loginUser(email: string, password: string): Promise<any> {
   return request("/api/auth/login", {
     method: "POST",
     body: JSON.stringify({ email, password }),
   });
 }
 
-export async function getSnapshots(): Promise<any[]> {
-  return request("/api/snapshots/me");
-}
-
-export async function getSharedSnapshot(id: string): Promise<any> {
-  const response = await fetch(`${BASE_URL}/api/snapshots/share/${id}`, {
-    method: "GET",
-    headers: { "Content-Type": "application/json" },
-  });
-
-  if (!response.ok) {
-    throw new Error("No se pudo cargar el dashboard compartido");
-  }
-
-  return response.json();
-}
-
 export async function verify2FALogin(
   userId: string,
   token: string,
-): Promise<{
-  token: string;
-  user: { id: string; email: string; name: string | null };
-}> {
+): Promise<any> {
   return request("/api/auth/login/verify-2fa", {
     method: "POST",
     body: JSON.stringify({ userId, token }),
@@ -158,9 +110,7 @@ export async function generate2FA(): Promise<{
   secret: string;
   qrCodeDataUrl: string;
 }> {
-  return request("/api/auth/2fa/generate", {
-    method: "POST",
-  });
+  return request("/api/auth/2fa/generate", { method: "POST" });
 }
 
 export async function enable2FA(
@@ -183,16 +133,7 @@ export async function update2FAFrequency(
   });
 }
 
-export async function getSessions(): Promise<
-  Array<{
-    id: string;
-    device: string;
-    browser: string;
-    ip: string;
-    createdAt: string;
-    lastUsed: string;
-  }>
-> {
+export async function getSessions(): Promise<any[]> {
   return request("/api/sessions");
 }
 
@@ -206,10 +147,6 @@ export async function revokeSession(
   });
 }
 
-export async function revokeAllSessions(): Promise<{ ok: boolean }> {
-  return request("/api/sessions", { method: "DELETE" });
-}
-
 export async function deleteAccount(
   password: string,
 ): Promise<{ ok: boolean }> {
@@ -219,29 +156,50 @@ export async function deleteAccount(
   });
 }
 
-export async function getWorkspaceMembers() {
+export async function getSnapshots(): Promise<any[]> {
+  return request("/api/snapshots/me");
+}
+
+export async function getSharedSnapshot(id: string): Promise<any> {
+  const response = await fetch(`${BASE_URL}/api/snapshots/share/${id}`);
+  if (!response.ok) throw new Error("Dashboard not found");
+  return response.json();
+}
+
+// ==========================================
+// LAS 6 FUNCIONES QUE HABÍAMOS BORRADO
+// ==========================================
+
+export async function revokeAllSessions(): Promise<{ ok: boolean }> {
+  return request("/api/sessions", { method: "DELETE" });
+}
+
+export async function getWorkspaceMembers(): Promise<any> {
   return request("/api/workspaces/members");
 }
 
-export async function updateMemberRole(userId: string, role: string) {
+export async function updateMemberRole(
+  userId: string,
+  role: string,
+): Promise<any> {
   return request(`/api/workspaces/members/${userId}/role`, {
     method: "PUT",
     body: JSON.stringify({ role }),
   });
 }
 
-export async function generateInvitation(role: string) {
+export async function generateInvitation(role: string): Promise<any> {
   return request("/api/invitations/generate", {
     method: "POST",
     body: JSON.stringify({ role }),
   });
 }
 
-export async function validateInvitation(code: string) {
+export async function validateInvitation(code: string): Promise<any> {
   return request(`/api/invitations/validate/${code}`);
 }
 
-export async function acceptInvitation(code: string) {
+export async function acceptInvitation(code: string): Promise<any> {
   return request("/api/invitations/accept", {
     method: "POST",
     body: JSON.stringify({ code }),
