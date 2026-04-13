@@ -79,7 +79,6 @@ function CustomTooltip({ active, payload, label }: any) {
 export function ExpenseBarChart() {
   const { rows, anomalies } = useDataStore();
 
-  // Enriquecemos cada fila con metadatos para que Cell pueda usarlos
   const chartData = rows.map((row, index) => ({
     ...row,
     _index: index,
@@ -101,12 +100,28 @@ export function ExpenseBarChart() {
         >
           <defs>
             <linearGradient id="colorBar" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="5%" stopColor={COLORS.barStroke} stopOpacity={0.6} />
-              <stop offset="95%" stopColor={COLORS.barStroke} stopOpacity={0.1} />
+              <stop
+                offset="5%"
+                stopColor={COLORS.barStroke}
+                stopOpacity={0.6}
+              />
+              <stop
+                offset="95%"
+                stopColor={COLORS.barStroke}
+                stopOpacity={0.1}
+              />
             </linearGradient>
             <linearGradient id="colorAnomaly" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="5%" stopColor={COLORS.anomalyStroke} stopOpacity={0.6} />
-              <stop offset="95%" stopColor={COLORS.anomalyStroke} stopOpacity={0.1} />
+              <stop
+                offset="5%"
+                stopColor={COLORS.anomalyStroke}
+                stopOpacity={0.6}
+              />
+              <stop
+                offset="95%"
+                stopColor={COLORS.anomalyStroke}
+                stopOpacity={0.1}
+              />
             </linearGradient>
           </defs>
           <CartesianGrid
@@ -143,7 +158,9 @@ export function ExpenseBarChart() {
             {chartData.map((entry, i) => (
               <Cell
                 key={i}
-                fill={entry._isAnomaly ? "url(#colorAnomaly)" : "url(#colorBar)"}
+                fill={
+                  entry._isAnomaly ? "url(#colorAnomaly)" : "url(#colorBar)"
+                }
                 stroke={
                   entry._isAnomaly ? COLORS.anomalyStroke : COLORS.barStroke
                 }

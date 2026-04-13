@@ -1,23 +1,33 @@
 @import "tailwindcss";
 
 @theme {
-  /* Negros más profundos para ese estilo financiero premium */
-  --color-bg-base: #050507; 
+  /* ── COLORES BASE (El abismo espacial) ── */
+  --color-bg-base: #030307; 
   --color-bg-surface: #0a0a0f;
-  --color-bg-card: rgba(15, 15, 20, 0.4); /* Translúcido para el efecto cristal */
   
-  --color-border: rgba(255, 255, 255, 0.08);
-  --color-border-hover: rgba(255, 255, 255, 0.15);
+  /* Cristal de Tarjetas: Negro Translúcido para el Glassmorphism */
+  --color-bg-card: rgba(10, 10, 18, 0.6);
+  --color-bg-elevated: rgba(20, 20, 30, 0.7);
   
-  --color-accent: #8b5cf6; 
-  --color-success: #10b981;
-  --color-danger: #ef4444;
+  /* ── BORDES DE LUZ (Neón sutil) ── */
+  --color-border: rgba(139, 92, 246, 0.2); 
+  --color-border-hover: rgba(139, 92, 246, 0.5);
   
+  /* ── COLORES NEÓN INTENSOS (El estilo ciberpunk) ── */
+  --color-accent: #8b5cf6;       /* Púrpura Neón */
+  --color-accent-dim: rgba(139, 92, 246, 0.1);
+  --color-success: #22d3ee;      /* Cyan Eléctrico (Sustituye al verde aburrido) */
+  --color-danger: #f472b6;       /* Rosa Intenso (Sustituye al rojo aburrido) */
+  --color-warning: #f59e0b;      /* Oro / Amber */
+  
+  /* ── TEXTOS ── */
   --color-text-primary: #ffffff;
-  --color-text-secondary: #9ca3af;
-  --color-text-muted: #6b7280;
+  --color-text-secondary: #e2e8f0;
+  --color-text-muted: #94a3b8;
 
-  --radius-lg: 16px;
+  /* ── RADIOS ── */
+  --radius-md: 16px;
+  --radius-lg: 24px;
 }
 
 body {
@@ -27,7 +37,7 @@ body {
   overflow-x: hidden;
 }
 
-/* ── EL FONDO ANIMADO PARA TODA LA WEB ── */
+/* ── EL FONDO ANIMADO PARA TODA LA WEB (Tu aportación genial) ── */
 .premium-bg {
   position: fixed;
   inset: 0;
@@ -47,11 +57,11 @@ body {
   -webkit-mask-image: radial-gradient(ellipse 100% 100% at 50% 50%, black 20%, transparent 80%);
 }
 
-/* Orbes de luz flotantes */
+/* Orbes de luz flotantes (Ajustados con los nuevos neones) */
 .orb-1, .orb-2 {
   position: absolute;
   border-radius: 50%;
-  filter: blur(90px);
+  filter: blur(120px); /* Desenfoque más suave para fusionarse mejor */
   opacity: 0.15;
   animation: float 20s infinite alternate ease-in-out;
 }
@@ -72,12 +82,22 @@ body {
   100% { transform: translate(-50px, 50px) scale(1.1); }
 }
 
-/* ── ANIMACIONES DE ENTRADA ELEGANTES ── */
-.fade-in-up {
-  animation: fadeInUp 0.7s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-  opacity: 0;
-  transform: translateY(20px);
+/* ── ANIMACIONES NUEVAS (Para que el Dashboard cobre vida) ── */
+
+/* Efecto de Pulso de Luz (Glow) para las gráficas interactivas */
+@keyframes neonGlow {
+  0%, 100% { filter: drop-shadow(0 0 8px rgba(139, 92, 246, 0.4)); }
+  50% { filter: drop-shadow(0 0 18px rgba(139, 92, 246, 0.8)); }
 }
-@keyframes fadeInUp {
+
+/* Animación de entrada fluida y escalonada de las tarjetas */
+@keyframes fadeSlideUp {
+  from { opacity: 0; transform: translateY(20px); }
   to { opacity: 1; transform: translateY(0); }
+}
+
+/* Animación de los puntitos de la IA "pensando" */
+@keyframes pulse {
+  0%, 100% { opacity: 0.4; transform: scale(0.8); }
+  50% { opacity: 1; transform: scale(1.2); }
 }

@@ -69,7 +69,6 @@ function CustomTooltip({ active, payload, label }: any) {
   );
 }
 
-// Dot personalizado: dibuja un punto rojo en anomalías, nada en predicciones
 function CustomDot(props: any) {
   const { cx, cy, payload, anomalyIndices } = props;
 
@@ -91,14 +90,11 @@ export function RevenueLineChart() {
 
   const forecastPoints = generateForecast(rows);
 
-  // Mezclamos datos reales y predicción en un solo array para Recharts
-  // Recharts necesita todos los puntos juntos para dibujar la línea continua
   const chartData: ChartDataPoint[] = [
     ...rows.map((row, index) => ({ ...row, index })),
     ...forecastPoints,
   ];
 
-  // Set para buscar anomalías en O(1)
   const anomalyIndices = new Set(
     anomalies.filter((a) => a.type === "revenue").map((a) => a.index),
   );
@@ -154,7 +150,6 @@ export function RevenueLineChart() {
           />
           <Tooltip content={<CustomTooltip />} />
 
-          {/* Área con gradiente para datos reales */}
           <Area
             type="monotone"
             dataKey="revenue"
@@ -168,7 +163,6 @@ export function RevenueLineChart() {
             activeDot={{ r: 5, fill: COLORS.line, strokeWidth: 0 }}
           />
 
-          {/* Área con gradiente para la predicción — empieza en el último dato real */}
           {forecastPoints.length > 0 && (
             <Area
               type="monotone"
@@ -187,7 +181,6 @@ export function RevenueLineChart() {
             />
           )}
 
-          {/* Marcador en el punto donde acaban los datos reales */}
           {forecastPoints.length > 0 && (
             <ReferenceDot
               x={rows[realDataLength - 1]?.date}

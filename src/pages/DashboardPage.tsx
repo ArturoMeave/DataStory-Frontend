@@ -8,8 +8,6 @@ import { TaskPanel } from "../components/dashboard/TaskPanel";
 import { ChatPanel } from "../components/dashboard/ChatPanel";
 import { ShareModal } from "../components/dashboard/ShareModal";
 import { StripeModal } from "../components/dashboard/StripeModal";
-import { RevenueLineChart } from "../components/charts/RevenueLinearChart";
-import { ExpenseBarChart } from "../components/charts/ExpenseBarChart";
 import { useDataStore } from "../stores/dataStore";
 import { useAuthStore } from "../stores/authStore";
 import { SpotlightCard } from "../components/ui/SpotlightCard";
@@ -21,12 +19,14 @@ import {
   goalProgress,
   formatCurrency,
 } from "../utils/dataAggregator";
+import { ExpenseBarChart } from "../components/charts/ExpenseBarChart";
+import { RevenueLineChart } from "../components/charts/RevenueLineChart";
 import { detectAnomalies } from "../utils/anomalyDetector";
 import { generateSummary, generateTasks } from "../services/api.service";
 import { exportPDF } from "../services/pdf.service";
 import type { Task } from "../types";
 
-// ── COMPONENTE KPI COMPACTO (Estilo Outrunix) ──
+// ── COMPONENTE KPI FUTURISTA ──
 function CompactKPICard({
   label,
   value,
@@ -34,15 +34,8 @@ function CompactKPICard({
   accentColor,
   progress = 100,
   delay = 0,
-}: {
-  label: string;
-  value: string;
-  change: string;
-  accentColor: string;
-  progress?: number;
-  delay?: number;
-}) {
-  const radius = 20;
+}: any) {
+  const radius = 22;
   const circumference = 2 * Math.PI * radius;
   const strokeDashoffset =
     circumference - (Math.min(progress, 100) / 100) * circumference;
@@ -50,71 +43,79 @@ function CompactKPICard({
   return (
     <SpotlightCard
       style={{
-        animation: `fadeSlideUp 0.4s ${delay}s cubic-bezier(0.16,1,0.3,1) both`,
+        animation: `fadeSlideUp 0.5s ${delay}s cubic-bezier(0.16,1,0.3,1) both`,
         height: "100%",
+        overflow: "visible",
       }}
     >
       <div
         style={{
-          padding: "16px 20px",
+          padding: "20px 24px",
           display: "flex",
           alignItems: "center",
-          gap: 16,
+          gap: 18,
           height: "100%",
         }}
       >
-        {/* Anillo de progreso */}
         <div
           style={{
             position: "relative",
-            width: 48,
-            height: 48,
+            width: 56,
+            height: 56,
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
             flexShrink: 0,
           }}
         >
-          <svg width="48" height="48" style={{ transform: "rotate(-90deg)" }}>
+          <svg
+            width="56"
+            height="56"
+            style={{
+              transform: "rotate(-90deg)",
+              filter: `drop-shadow(0 0 8px ${accentColor}50)`,
+            }}
+          >
             <circle
-              cx="24"
-              cy="24"
-              r="20"
+              cx="28"
+              cy="28"
+              r={radius}
               fill="transparent"
-              stroke="rgba(255,255,255,0.05)"
-              strokeWidth="4"
+              stroke="rgba(255,255,255,0.03)"
+              strokeWidth="5"
             />
             <circle
-              cx="24"
-              cy="24"
-              r="20"
+              cx="28"
+              cy="28"
+              r={radius}
               fill="transparent"
               stroke={accentColor}
-              strokeWidth="4"
+              strokeWidth="5"
               strokeDasharray={circumference}
               strokeDashoffset={strokeDashoffset}
               strokeLinecap="round"
-              style={{ transition: "stroke-dashoffset 1s ease-in-out" }}
+              style={{
+                transition:
+                  "stroke-dashoffset 1.5s cubic-bezier(0.4, 0, 0.2, 1)",
+              }}
             />
           </svg>
           <span
             style={{
               position: "absolute",
-              fontSize: 11,
-              fontWeight: 600,
+              fontSize: 13,
+              fontWeight: 700,
               color: "var(--color-text-primary)",
             }}
           >
             {Math.round(progress)}%
           </span>
         </div>
-
-        {/* Textos */}
         <div
           style={{
             display: "flex",
             flexDirection: "column",
-            gap: 2,
+            gap: 3,
             flex: 1,
             minWidth: 0,
           }}
@@ -123,38 +124,36 @@ function CompactKPICard({
             style={{
               fontSize: 11,
               color: "var(--color-text-muted)",
-              fontWeight: 500,
+              fontWeight: 600,
               textTransform: "uppercase",
-              letterSpacing: "0.05em",
-              whiteSpace: "nowrap",
-              overflow: "hidden",
-              textOverflow: "ellipsis",
+              letterSpacing: "0.1em",
             }}
           >
             {label}
           </p>
           <p
             style={{
-              fontSize: 18,
-              fontWeight: 600,
+              fontSize: 22,
+              fontWeight: 700,
               color: "var(--color-text-primary)",
-              letterSpacing: "-0.02em",
+              letterSpacing: "-0.03em",
             }}
           >
             {value}
           </p>
           <span
             style={{
-              fontSize: 10,
-              fontWeight: 600,
+              fontSize: 11,
+              fontWeight: 700,
               color: accentColor,
               display: "inline-flex",
               alignItems: "center",
-              padding: "2px 6px",
-              background: `${accentColor}15`,
-              borderRadius: 12,
+              padding: "3px 8px",
+              background: `${accentColor}10`,
+              borderRadius: 8,
               alignSelf: "flex-start",
               marginTop: 2,
+              border: `1px solid ${accentColor}20`,
             }}
           >
             {change}
@@ -176,15 +175,22 @@ export function DashboardPage() {
     setTasks,
   } = useDataStore();
   const { user } = useAuthStore();
+
   const [showShare, setShowShare] = useState(false);
   const [showStripe, setShowStripe] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
+
+  const [activeChart, setActiveChart] = useState<"revenue" | "expenses">(
+    "revenue",
+  );
+  const [activeAI, setActiveAI] = useState<"summary" | "tasks">("summary");
 
   const hasData = rows.length > 0;
   const rev = totalRevenue(rows);
   const exp = totalExpenses(rows);
   const profit = netProfit(rows);
 
+  // Lógica completa de IA restaurada
   useEffect(() => {
     if (!hasData) return;
     setAnomalies(detectAnomalies(rows));
@@ -220,6 +226,7 @@ export function DashboardPage() {
     fetchAI();
   }, [rows, goal]);
 
+  // Lógica completa de PDF restaurada
   const handleExportPDF = async () => {
     if (isExporting) return;
     setIsExporting(true);
@@ -235,6 +242,24 @@ export function DashboardPage() {
     }
   };
 
+  const getTabStyle = (isActive: boolean) => ({
+    padding: "10px 28px",
+    borderRadius: "10px",
+    background: isActive
+      ? "linear-gradient(180deg, rgba(139,92,246,0.2) 0%, rgba(139,92,246,0.05) 100%)"
+      : "transparent",
+    border: `1px solid ${isActive ? "rgba(139,92,246,0.6)" : "transparent"}`,
+    color: isActive ? "var(--color-text-primary)" : "var(--color-text-muted)",
+    fontSize: 13,
+    fontWeight: isActive ? 700 : 500,
+    cursor: "pointer",
+    boxShadow: isActive ? "0 0 15px rgba(139,92,246,0.3)" : "none",
+    textTransform: "uppercase",
+    letterSpacing: "0.05em",
+    transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
+    outline: "none",
+  });
+
   return (
     <div
       style={{
@@ -245,8 +270,6 @@ export function DashboardPage() {
       }}
     >
       <Sidebar />
-
-      {/* 🔴 CORRECCIÓN DEL SOLAPAMIENTO: marginLeft 260px */}
       <div
         style={{
           marginLeft: 260,
@@ -261,57 +284,56 @@ export function DashboardPage() {
           <FileDropzone />
         ) : (
           <>
-            {/* HEADER COMPACTO TIPO OUTRUNIX */}
             <header
               style={{
-                padding: "14px 28px",
+                padding: "16px 32px",
                 borderBottom: "1px solid var(--color-border)",
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "space-between",
-                background: "rgba(10,10,15,0.4)",
-                backdropFilter: "blur(12px)",
+                background: "rgba(3,3,7,0.5)",
+                backdropFilter: "blur(25px)",
                 zIndex: 20,
               }}
             >
-              <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+              <div style={{ display: "flex", flexDirection: "column", gap: 3 }}>
                 <h1
                   style={{
-                    fontSize: 20,
-                    fontWeight: 600,
+                    fontSize: 22,
+                    fontWeight: 700,
                     color: "var(--color-text-primary)",
-                    letterSpacing: "-0.02em",
+                    letterSpacing: "-0.03em",
                   }}
                 >
-                  Hi, {user?.name?.split(" ")[0] || "Reen"} !
+                  Hola, {user?.name?.split(" ")[0] || "Reen"}
                 </h1>
-                <p style={{ fontSize: 12, color: "var(--color-text-muted)" }}>
-                  Here's what's happening with your business today.
+                <p style={{ fontSize: 13, color: "var(--color-text-muted)" }}>
+                  Aquí tienes el pulso energético de tu empresa hoy.
                 </p>
               </div>
 
-              <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
                 <div
                   style={{
                     display: "flex",
                     alignItems: "center",
-                    gap: 8,
-                    padding: "8px 14px",
+                    gap: 10,
+                    padding: "10px 18px",
                     background: "var(--color-bg-elevated)",
                     border: "1px solid var(--color-border)",
-                    borderRadius: 20,
-                    width: 220,
+                    borderRadius: "24px",
+                    width: 250,
                   }}
                 >
-                  <Search size={14} color="var(--color-text-muted)" />
+                  <Search size={16} color="var(--color-text-muted)" />
                   <input
                     type="text"
-                    placeholder="Search anything..."
+                    placeholder="Buscar datos..."
                     style={{
                       background: "transparent",
                       border: "none",
                       color: "var(--color-text-primary)",
-                      fontSize: 13,
+                      fontSize: 14,
                       outline: "none",
                       width: "100%",
                     }}
@@ -322,19 +344,18 @@ export function DashboardPage() {
                   style={{
                     display: "flex",
                     alignItems: "center",
-                    gap: 6,
-                    padding: "8px 16px",
-                    borderRadius: 20,
+                    gap: 8,
+                    padding: "10px 20px",
+                    borderRadius: "24px",
                     background: "transparent",
                     border: "1px solid var(--color-border-hover)",
                     color: "var(--color-text-secondary)",
                     fontSize: 13,
-                    fontWeight: 500,
+                    fontWeight: 600,
                     cursor: "pointer",
-                    transition: "all 0.2s",
                   }}
                 >
-                  <Share2 size={13} /> Share
+                  <Share2 size={14} /> Compartir
                 </button>
                 <button
                   onClick={handleExportPDF}
@@ -342,24 +363,26 @@ export function DashboardPage() {
                   style={{
                     display: "flex",
                     alignItems: "center",
-                    gap: 6,
-                    padding: "8px 16px",
-                    borderRadius: 20,
-                    background: "var(--color-accent)",
+                    gap: 8,
+                    padding: "10px 20px",
+                    borderRadius: "24px",
+                    background:
+                      "linear-gradient(135deg, var(--color-accent) 0%, #9333ea 100%)",
                     border: "none",
                     color: "#fff",
                     fontSize: 13,
-                    fontWeight: 500,
+                    fontWeight: 700,
                     cursor: isExporting ? "not-allowed" : "pointer",
-                    opacity: isExporting ? 0.6 : 1,
+                    boxShadow: "0 4px 15px rgba(124, 58, 237, 0.4)",
                   }}
                 >
-                  <Download size={13} /> Export PDF
+                  <Download size={14} />{" "}
+                  {isExporting ? "Generando..." : "Reporte PDF"}
                 </button>
                 <div
                   style={{
-                    width: 36,
-                    height: 36,
+                    width: 40,
+                    height: 40,
                     borderRadius: "50%",
                     background: "var(--color-bg-elevated)",
                     border: "1px solid var(--color-border)",
@@ -369,32 +392,31 @@ export function DashboardPage() {
                     cursor: "pointer",
                   }}
                 >
-                  <Bell size={15} color="var(--color-text-muted)" />
+                  <Bell size={17} color="var(--color-text-muted)" />
                 </div>
               </div>
             </header>
 
-            {/* MAIN CONTENT: SCROLLEABLE, GRID AJUSTADO */}
             <main
               style={{
-                padding: "24px 28px",
+                padding: "32px",
                 flex: 1,
                 overflowY: "auto",
                 display: "flex",
                 flexDirection: "column",
-                gap: 20,
+                gap: 24,
+                paddingBottom: "100px",
               }}
             >
-              {/* 1. 4 KPIs (Anillos estilo Outrunix) */}
               <div
                 style={{
                   display: "grid",
                   gridTemplateColumns: "repeat(4, 1fr)",
-                  gap: 16,
+                  gap: 20,
                 }}
               >
                 <CompactKPICard
-                  label="Total Revenue"
+                  label="Ingresos Totales"
                   value={formatCurrency(rev)}
                   change="+12.5%"
                   accentColor="var(--color-accent)"
@@ -402,7 +424,7 @@ export function DashboardPage() {
                   delay={0.05}
                 />
                 <CompactKPICard
-                  label="Total Expenses"
+                  label="Gastos Totales"
                   value={formatCurrency(exp)}
                   change="+4.2%"
                   accentColor="var(--color-danger)"
@@ -410,7 +432,7 @@ export function DashboardPage() {
                   delay={0.1}
                 />
                 <CompactKPICard
-                  label="Net Profit"
+                  label="Beneficio Neto"
                   value={formatCurrency(profit)}
                   change={profit >= 0 ? "+21.0%" : "-5.0%"}
                   accentColor="var(--color-success)"
@@ -418,7 +440,7 @@ export function DashboardPage() {
                   delay={0.15}
                 />
                 <CompactKPICard
-                  label="Goal Progress"
+                  label="Progreso Meta"
                   value={formatCurrency(goal?.amount || 0)}
                   change="Target"
                   accentColor="var(--color-warning)"
@@ -431,69 +453,98 @@ export function DashboardPage() {
 
               <AnomalyAlert />
 
-              {/* 2. Gráfico de Ingresos + Tareas (Layout 2 a 1) */}
               <div
                 style={{
                   display: "grid",
-                  gridTemplateColumns: "2fr 1fr",
-                  gap: 16,
+                  gridTemplateColumns: "2.2fr 1fr",
+                  gap: 20,
+                  flex: 1,
+                  minHeight: 450,
                 }}
               >
                 <div
                   style={{
-                    animation: "fadeSlideUp 0.5s 0.25s both",
                     display: "flex",
                     flexDirection: "column",
+                    gap: 16,
+                    height: "100%",
                   }}
                 >
-                  <RevenueLineChart />
+                  <div
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "space-between",
+                      background: "rgba(10,10,15,0.6)",
+                      padding: "6px",
+                      borderRadius: 12,
+                      border: "1px solid var(--color-border)",
+                      backdropFilter: "blur(15px)",
+                    }}
+                  >
+                    <div style={{ display: "flex", gap: 4 }}>
+                      <button
+                        onClick={() => setActiveChart("revenue")}
+                        style={getTabStyle(activeChart === "revenue")}
+                      >
+                        Ingresos
+                      </button>
+                      <button
+                        onClick={() => setActiveChart("expenses")}
+                        style={getTabStyle(activeChart === "expenses")}
+                      >
+                        Gastos
+                      </button>
+                    </div>
+                  </div>
+                  <div
+                    style={{ flex: 1, animation: "fadeSlideUp 0.3s ease-out" }}
+                  >
+                    {activeChart === "revenue" ? (
+                      <RevenueLineChart />
+                    ) : (
+                      <ExpenseBarChart />
+                    )}
+                  </div>
                 </div>
-                <div
-                  style={{
-                    animation: "fadeSlideUp 0.5s 0.3s both",
-                    display: "flex",
-                    flexDirection: "column",
-                  }}
-                >
-                  <TaskPanel />
-                </div>
-              </div>
 
-              {/* 3. Gráficos Extra + Chat (Layout 3 columnas) */}
-              <div
-                style={{
-                  display: "grid",
-                  gridTemplateColumns: "1fr 1fr 1fr",
-                  gap: 16,
-                  paddingBottom: 24,
-                }}
-              >
                 <div
                   style={{
-                    animation: "fadeSlideUp 0.5s 0.35s both",
                     display: "flex",
                     flexDirection: "column",
+                    gap: 16,
+                    height: "100%",
                   }}
                 >
-                  <ExpenseBarChart />
-                </div>
-                <div
-                  style={{
-                    animation: "fadeSlideUp 0.5s 0.4s both",
-                    display: "flex",
-                    flexDirection: "column",
-                  }}
-                >
-                  <AISummary />
-                </div>
-                <div
-                  style={{
-                    animation: "fadeSlideUp 0.5s 0.45s both",
-                    display: "flex",
-                    flexDirection: "column",
-                  }}
-                >
-                  <ChatPanel />
+                  <div
+                    style={{
+                      display: "flex",
+                      background: "rgba(10,10,15,0.6)",
+                      padding: "6px",
+                      borderRadius: 12,
+                      border: "1px solid var(--color-border)",
+                      backdropFilter: "blur(15px)",
+                      width: "fit-content",
+                    }}
+                  >
+                    <button
+                      onClick={() => setActiveAI("summary")}
+                      style={getTabStyle(activeAI === "summary")}
+                    >
+                      Resumen IA
+                    </button>
+                    <button
+                      onClick={() => setActiveAI("tasks")}
+                      style={getTabStyle(activeAI === "tasks")}
+                    >
+                      Plan de Acción
+                    </button>
+                  </div>
+                  <div
+                    style={{ flex: 1, animation: "fadeSlideUp 0.3s ease-out" }}
+                  >
+                    {activeAI === "summary" ? <AISummary /> : <TaskPanel />}
+                  </div>
                 </div>
               </div>
             </main>
@@ -503,6 +554,7 @@ export function DashboardPage() {
 
       <ShareModal isOpen={showShare} onClose={() => setShowShare(false)} />
       <StripeModal isOpen={showStripe} onClose={() => setShowStripe(false)} />
+      {hasData && <ChatPanel />}
     </div>
   );
 }

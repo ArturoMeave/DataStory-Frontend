@@ -1,5 +1,13 @@
 import { useEffect, useState } from "react";
-import { Shield, User, Plus, AlertCircle } from "lucide-react";
+import {
+  User,
+  Plus,
+  Link,
+  Copy,
+  Check,
+  LogIn,
+  ChevronDown,
+} from "lucide-react";
 import { Sidebar } from "../components/layout/Sidebar";
 import { SpotlightCard } from "../components/ui/SpotlightCard";
 import { useAuthStore } from "../stores/authStore";
@@ -7,6 +15,7 @@ import {
   getWorkspaceMembers,
   updateMemberRole,
   generateInvitation,
+  acceptInvitation,
 } from "../services/api.service";
 
 interface Member {
@@ -18,12 +27,18 @@ interface Member {
 }
 
 export function TeamPage() {
-  const { user } = useAuthStore();
+  const { user, updateUser } = useAuthStore();
+
   const [members, setMembers] = useState<Member[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [, setError] = useState<string | null>(null);
+
   const [isInviting, setIsInviting] = useState(false);
   const [inviteLink, setInviteLink] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
+
+  const [joinInput, setJoinInput] = useState("");
+  const [isJoining, setIsJoining] = useState(false);
 
   const fetchMembers = async () => {
     try {
@@ -52,7 +67,7 @@ export function TeamPage() {
   const handleGenerateLink = async () => {
     setIsInviting(true);
     try {
-      const res: any = await generateInvitation("EDITOR"); // Cast 'any' para evitar error TS
+      const res: any = await generateInvitation("EDITOR");
       const link = `${window.location.origin}/join/${res.code}`;
       setInviteLink(link);
     } catch (err: any) {
@@ -62,11 +77,50 @@ export function TeamPage() {
     }
   };
 
-  // Usamos un cast temporal a 'any' para el rol del usuario actual
+  const handleCopy = () => {
+    if (inviteLink) {
+      navigator.clipboard.writeText(inviteLink);
+      setCopied(true);
+      setTimeout(() => {
+        setCopied(false);
+        setInviteLink(null);
+      }, 2000);
+    }
+  };
+
+  const handleJoinTeam = async () => {
+    if (!joinInput.trim()) return;
+
+    setIsJoining(true);
+    try {
+      const code = joinInput.split("/").pop()?.trim() || joinInput.trim();
+      const updatedUser: any = await acceptInvitation(code);
+
+      updateUser({
+        role: updatedUser.role,
+        workspaceId: updatedUser.workspaceId,
+      } as any);
+
+      alert("¡Te has unido al equipo con éxito!");
+      setJoinInput("");
+      fetchMembers();
+    } catch (err: any) {
+      alert(err.message || "Enlace o código inválido.");
+    } finally {
+      setIsJoining(false);
+    }
+  };
+
+  // 👇 LA GRAN CORRECCIÓN:
+  // Buscamos tu perfil "fresco" directamente desde la base de datos (la lista de miembros)
+  const currentUser = members.find((m) => m.id === user?.id);
+
+  // Eres admin si la memoria fresca (currentUser) o la local (user) lo dicen.
   const isAdmin =
+    currentUser?.role === "ADMIN" ||
+    currentUser?.role === "OWNER" ||
     (user as any)?.role === "ADMIN" ||
-    (user as any)?.role === "OWNER" ||
-    !(user as any)?.role;
+    (user as any)?.role === "OWNER";
 
   return (
     <div
@@ -85,7 +139,7 @@ export function TeamPage() {
       >
         <header
           style={{
-            padding: "20px 32px",
+            padding: "24px 32px",
             borderBottom: "1px solid var(--color-border)",
             background: "rgba(10,10,15,0.4)",
             backdropFilter: "blur(12px)",
@@ -94,120 +148,285 @@ export function TeamPage() {
         >
           <h1
             style={{
-              fontSize: 22,
-              fontWeight: 600,
+              fontSize: 24,
+              fontWeight: 700,
               color: "var(--color-text-primary)",
+              letterSpacing: "-0.02em",
             }}
           >
             Gestión de Equipo
           </h1>
-          <p style={{ fontSize: 13, color: "var(--color-text-muted)" }}>
-            Administra los accesos de tu empresa.
+          <p
+            style={{
+              fontSize: 14,
+              color: "var(--color-text-muted)",
+              marginTop: 4,
+            }}
+          >
+            Administra los roles, invita colaboradores o únete a un espacio de
+            trabajo.
           </p>
         </header>
 
-        <main style={{ padding: "28px 32px", flex: 1, overflowY: "auto" }}>
+        <main style={{ padding: "32px", flex: 1, overflowY: "auto" }}>
           <div
             style={{
               maxWidth: 900,
               margin: "0 auto",
               display: "flex",
               flexDirection: "column",
-              gap: 24,
+              gap: 32,
             }}
           >
-            {isAdmin && (
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: isAdmin ? "1fr 1fr" : "1fr",
+                gap: 24,
+              }}
+            >
               <SpotlightCard>
                 <div
                   style={{
-                    padding: "20px 24px",
+                    padding: "28px",
                     display: "flex",
-                    alignItems: "center",
-                    gap: 16,
+                    flexDirection: "column",
+                    height: "100%",
+                    gap: 24,
                   }}
                 >
-                  <div style={{ flex: 1 }}>
-                    <h3
+                  <div
+                    style={{ display: "flex", alignItems: "center", gap: 16 }}
+                  >
+                    <div
                       style={{
-                        fontSize: 14,
-                        fontWeight: 600,
-                        color: "var(--color-text-primary)",
+                        width: 48,
+                        height: 48,
+                        borderRadius: "14px",
+                        background: "rgba(34, 211, 160, 0.1)",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        border: "1px solid rgba(34, 211, 160, 0.2)",
                       }}
                     >
-                      Añadir trabajador
-                    </h3>
-                    <p
-                      style={{ fontSize: 12, color: "var(--color-text-muted)" }}
-                    >
-                      Genera un enlace seguro de un solo uso.
-                    </p>
+                      <LogIn size={24} color="var(--color-success)" />
+                    </div>
+                    <div>
+                      <h3
+                        style={{
+                          fontSize: 17,
+                          fontWeight: 600,
+                          color: "var(--color-text-primary)",
+                        }}
+                      >
+                        Unirse a un equipo
+                      </h3>
+                      <p
+                        style={{
+                          fontSize: 13,
+                          color: "var(--color-text-muted)",
+                          marginTop: 2,
+                        }}
+                      >
+                        Pega el enlace o el código que te ha dado tu
+                        administrador.
+                      </p>
+                    </div>
                   </div>
-                  {inviteLink ? (
+
+                  <div
+                    style={{
+                      display: "flex",
+                      flexDirection: "column",
+                      gap: 12,
+                      marginTop: "auto",
+                    }}
+                  >
+                    <input
+                      type="text"
+                      placeholder="Ej: AX92-KPL1 o http://..."
+                      value={joinInput}
+                      onChange={(e) => setJoinInput(e.target.value)}
+                      style={{
+                        padding: "12px 16px",
+                        borderRadius: "12px",
+                        background: "var(--color-bg-base)",
+                        border: "1px solid var(--color-border-hover)",
+                        color: "var(--color-text-primary)",
+                        fontSize: 14,
+                        outline: "none",
+                      }}
+                    />
+                    <button
+                      onClick={handleJoinTeam}
+                      disabled={isJoining || !joinInput.trim()}
+                      style={{
+                        padding: "12px 28px",
+                        borderRadius: "12px",
+                        background: "var(--color-text-primary)",
+                        border: "none",
+                        color: "var(--color-bg-base)",
+                        fontSize: 14,
+                        fontWeight: 700,
+                        cursor:
+                          !joinInput.trim() || isJoining
+                            ? "not-allowed"
+                            : "pointer",
+                        opacity: !joinInput.trim() || isJoining ? 0.5 : 1,
+                        transition: "all 0.2s",
+                      }}
+                    >
+                      {isJoining ? "Verificando..." : "Solicitar entrada"}
+                    </button>
+                  </div>
+                </div>
+              </SpotlightCard>
+
+              {isAdmin && (
+                <SpotlightCard>
+                  <div
+                    style={{
+                      padding: "28px",
+                      display: "flex",
+                      flexDirection: "column",
+                      height: "100%",
+                      gap: 24,
+                    }}
+                  >
+                    <div
+                      style={{ display: "flex", alignItems: "center", gap: 16 }}
+                    >
+                      <div
+                        style={{
+                          width: 48,
+                          height: 48,
+                          borderRadius: "14px",
+                          background: "rgba(124, 58, 237, 0.1)",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          border: "1px solid rgba(124, 58, 237, 0.2)",
+                        }}
+                      >
+                        <Link size={24} color="var(--color-accent)" />
+                      </div>
+                      <div>
+                        <h3
+                          style={{
+                            fontSize: 17,
+                            fontWeight: 600,
+                            color: "var(--color-text-primary)",
+                          }}
+                        >
+                          Invitar colaboradores
+                        </h3>
+                        <p
+                          style={{
+                            fontSize: 13,
+                            color: "var(--color-text-muted)",
+                            marginTop: 2,
+                          }}
+                        >
+                          Genera una llave de acceso única para nuevos miembros.
+                        </p>
+                      </div>
+                    </div>
+
                     <div
                       style={{
                         display: "flex",
                         alignItems: "center",
-                        gap: 8,
-                        padding: "8px 14px",
-                        background: "var(--color-success-dim)",
-                        border: "1px solid var(--color-success)",
-                        borderRadius: 8,
+                        gap: 12,
+                        marginTop: "auto",
                       }}
                     >
-                      <span
-                        style={{
-                          fontSize: 13,
-                          color: "var(--color-success)",
-                          fontFamily: "monospace",
-                        }}
-                      >
-                        {inviteLink}
-                      </span>
-                      <button
-                        onClick={() => {
-                          navigator.clipboard.writeText(inviteLink);
-                          alert("Copiado!");
-                          setInviteLink(null);
-                        }}
-                        style={{
-                          background: "var(--color-success)",
-                          color: "white",
-                          border: "none",
-                          padding: "4px 8px",
-                          borderRadius: 4,
-                          cursor: "pointer",
-                          fontWeight: 600,
-                        }}
-                      >
-                        COPIAR
-                      </button>
+                      {!inviteLink ? (
+                        <button
+                          onClick={handleGenerateLink}
+                          disabled={isInviting}
+                          style={{
+                            width: "100%",
+                            padding: "12px 28px",
+                            borderRadius: "12px",
+                            background:
+                              "linear-gradient(135deg, var(--color-accent) 0%, #9333ea 100%)",
+                            border: "none",
+                            color: "white",
+                            fontSize: 14,
+                            fontWeight: 600,
+                            cursor: isInviting ? "not-allowed" : "pointer",
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            gap: 10,
+                            boxShadow: "0 4px 15px rgba(124, 58, 237, 0.3)",
+                          }}
+                        >
+                          <Plus size={18} />{" "}
+                          {isInviting ? "Generando..." : "Crear enlace"}
+                        </button>
+                      ) : (
+                        <div
+                          style={{
+                            display: "flex",
+                            alignItems: "center",
+                            gap: 12,
+                            background: "rgba(255,255,255,0.03)",
+                            padding: "8px",
+                            borderRadius: "16px",
+                            border: "1px solid var(--color-border-hover)",
+                            width: "100%",
+                          }}
+                        >
+                          <div
+                            style={{
+                              flex: 1,
+                              padding: "12px 18px",
+                              background: "var(--color-bg-base)",
+                              borderRadius: "12px",
+                              fontSize: 13,
+                              color: "var(--color-accent)",
+                              fontFamily: "monospace",
+                              overflow: "hidden",
+                              textOverflow: "ellipsis",
+                              whiteSpace: "nowrap",
+                            }}
+                          >
+                            {inviteLink}
+                          </div>
+                          <button
+                            onClick={handleCopy}
+                            style={{
+                              padding: "12px 24px",
+                              borderRadius: "12px",
+                              background: copied
+                                ? "var(--color-success)"
+                                : "var(--color-text-primary)",
+                              color: copied ? "white" : "var(--color-bg-base)",
+                              border: "none",
+                              fontSize: 13,
+                              fontWeight: 700,
+                              cursor: "pointer",
+                              display: "flex",
+                              alignItems: "center",
+                              gap: 8,
+                            }}
+                          >
+                            {copied ? <Check size={16} /> : <Copy size={16} />}
+                          </button>
+                        </div>
+                      )}
                     </div>
-                  ) : (
-                    <button
-                      onClick={handleGenerateLink}
-                      disabled={isInviting}
-                      style={{
-                        padding: "8px 16px",
-                        borderRadius: 8,
-                        background: "var(--color-accent)",
-                        border: "none",
-                        color: "#fff",
-                        fontWeight: 500,
-                        cursor: "pointer",
-                      }}
-                    >
-                      <Plus size={14} style={{ marginRight: 6 }} />{" "}
-                      {isInviting ? "Generando..." : "Generar Enlace"}
-                    </button>
-                  )}
-                </div>
-              </SpotlightCard>
-            )}
+                  </div>
+                </SpotlightCard>
+              )}
+            </div>
 
             <SpotlightCard>
               <div
                 style={{
-                  padding: "20px 24px",
+                  padding: "24px 28px",
                   borderBottom: "1px solid var(--color-border)",
                 }}
               >
@@ -218,103 +437,188 @@ export function TeamPage() {
                     color: "var(--color-text-primary)",
                   }}
                 >
-                  Miembros
+                  Miembros activos
                 </h3>
               </div>
-              <div style={{ display: "flex", flexDirection: "column" }}>
-                {members.map((member) => (
-                  <div
-                    key={member.id}
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "space-between",
-                      padding: "16px 24px",
-                      borderBottom: "1px solid var(--color-border)",
-                    }}
-                  >
+
+              {isLoading ? (
+                <div
+                  style={{
+                    padding: 40,
+                    textAlign: "center",
+                    color: "var(--color-text-muted)",
+                  }}
+                >
+                  Cargando equipo...
+                </div>
+              ) : (
+                <div style={{ display: "flex", flexDirection: "column" }}>
+                  {members.map((member) => (
                     <div
-                      style={{ display: "flex", alignItems: "center", gap: 14 }}
+                      key={member.id}
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "space-between",
+                        padding: "20px 28px",
+                        borderBottom: "1px solid var(--color-border)",
+                      }}
                     >
                       <div
                         style={{
-                          width: 40,
-                          height: 40,
-                          borderRadius: "50%",
-                          background: "var(--color-bg-base)",
                           display: "flex",
                           alignItems: "center",
-                          justifyContent: "center",
+                          gap: 16,
                         }}
                       >
-                        <User size={18} />
-                      </div>
-                      <div>
-                        <p style={{ fontSize: 14, fontWeight: 500 }}>
-                          {member.name || "Sin nombre"}{" "}
-                          {member.id === user?.id && (
-                            <span
-                              style={{
-                                fontSize: 10,
-                                color: "var(--color-accent)",
-                                background: "var(--color-accent-dim)",
-                                padding: "2px 6px",
-                                borderRadius: 10,
-                              }}
-                            >
-                              TÚ
-                            </span>
-                          )}
-                        </p>
-                        <p
+                        <div
                           style={{
-                            fontSize: 12,
-                            color: "var(--color-text-muted)",
+                            width: 44,
+                            height: 44,
+                            borderRadius: "12px",
+                            background: "var(--color-bg-base)",
+                            border: "1px solid var(--color-border)",
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            color: "var(--color-text-secondary)",
                           }}
                         >
-                          {member.email}
-                        </p>
-                      </div>
-                    </div>
-                    <div
-                      style={{ display: "flex", alignItems: "center", gap: 12 }}
-                    >
-                      <span
-                        style={{
-                          fontSize: 12,
-                          fontWeight: 600,
-                          color:
-                            member.role === "OWNER"
-                              ? "var(--color-warning)"
-                              : "var(--color-accent)",
-                        }}
-                      >
-                        {member.role}
-                      </span>
-                      {isAdmin &&
-                        member.id !== user?.id &&
-                        member.role !== "OWNER" && (
-                          <select
-                            value={member.role}
-                            onChange={(e) =>
-                              handleRoleChange(member.id, e.target.value)
-                            }
+                          <User size={20} />
+                        </div>
+                        <div>
+                          <div
                             style={{
-                              padding: "6px 10px",
-                              background: "var(--color-bg-elevated)",
-                              border: "1px solid var(--color-border-hover)",
-                              borderRadius: 6,
-                              color: "white",
+                              display: "flex",
+                              alignItems: "center",
+                              gap: 8,
                             }}
                           >
-                            <option value="EDITOR">Trabajador</option>
-                            <option value="ADMIN">Admin</option>
-                          </select>
-                        )}
+                            <p style={{ fontSize: 15, fontWeight: 600 }}>
+                              {member.name || "Sin nombre"}
+                            </p>
+                            {member.id === user?.id && (
+                              <span
+                                style={{
+                                  fontSize: 10,
+                                  fontWeight: 800,
+                                  color: "var(--color-accent)",
+                                  background: "var(--color-accent-dim)",
+                                  padding: "2px 8px",
+                                  borderRadius: "6px",
+                                  textTransform: "uppercase",
+                                }}
+                              >
+                                Tú
+                              </span>
+                            )}
+                          </div>
+                          <p
+                            style={{
+                              fontSize: 13,
+                              color: "var(--color-text-muted)",
+                              marginTop: 2,
+                            }}
+                          >
+                            {member.email}
+                          </p>
+                        </div>
+                      </div>
+
+                      <div
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          gap: 16,
+                        }}
+                      >
+                        <span
+                          style={{
+                            fontSize: 12,
+                            fontWeight: 700,
+                            padding: "6px 12px",
+                            borderRadius: "8px",
+                            background:
+                              member.role === "OWNER"
+                                ? "rgba(245, 158, 11, 0.1)"
+                                : "rgba(124, 58, 237, 0.1)",
+                            color:
+                              member.role === "OWNER"
+                                ? "#f59e0b"
+                                : "var(--color-accent)",
+                            textTransform: "uppercase",
+                            letterSpacing: "0.05em",
+                          }}
+                        >
+                          {member.role}
+                        </span>
+
+                        {isAdmin &&
+                          member.id !== user?.id &&
+                          member.role !== "OWNER" && (
+                            <div style={{ position: "relative" }}>
+                              <select
+                                value={member.role}
+                                onChange={(e) =>
+                                  handleRoleChange(member.id, e.target.value)
+                                }
+                                style={{
+                                  appearance: "none",
+                                  WebkitAppearance: "none",
+                                  padding: "8px 36px 8px 16px",
+                                  background: "rgba(255,255,255,0.03)",
+                                  border: "1px solid var(--color-border-hover)",
+                                  borderRadius: "10px",
+                                  color: "var(--color-text-primary)",
+                                  fontSize: 13,
+                                  fontWeight: 500,
+                                  cursor: "pointer",
+                                  outline: "none",
+                                  transition: "all 0.2s",
+                                }}
+                              >
+                                <option
+                                  value="EDITOR"
+                                  style={{
+                                    background: "#0a0a0f",
+                                    color: "white",
+                                    padding: "10px",
+                                  }}
+                                >
+                                  Trabajador
+                                </option>
+                                <option
+                                  value="ADMIN"
+                                  style={{
+                                    background: "#0a0a0f",
+                                    color: "white",
+                                    padding: "10px",
+                                  }}
+                                >
+                                  Admin
+                                </option>
+                              </select>
+                              <div
+                                style={{
+                                  position: "absolute",
+                                  right: 12,
+                                  top: "50%",
+                                  transform: "translateY(-50%)",
+                                  pointerEvents: "none",
+                                  color: "var(--color-text-muted)",
+                                  display: "flex",
+                                  alignItems: "center",
+                                }}
+                              >
+                                <ChevronDown size={14} />
+                              </div>
+                            </div>
+                          )}
+                      </div>
                     </div>
-                  </div>
-                ))}
-              </div>
+                  ))}
+                </div>
+              )}
             </SpotlightCard>
           </div>
         </main>

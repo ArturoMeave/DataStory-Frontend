@@ -1,169 +1,149 @@
-import { ListTodo, RefreshCw, CheckCircle2, Circle } from "lucide-react";
-import { Card } from "../ui/Card";
-import { Button } from "../ui/Button";
+import { CheckCircle2, ListTodo, AlertCircle } from "lucide-react";
+import { SpotlightCard } from "../ui/SpotlightCard";
 import { useDataStore } from "../../stores/dataStore";
-import { generateTasks } from "../../services/api.service";
-import { buildDataSummary } from "../../utils/dataAggregator";
-
-const priorityColors: Record<string, string> = {
-  high: "var(--color-danger)",
-  medium: "var(--color-warning)",
-  low: "var(--color-success)",
-};
-
-const priorityLabels: Record<string, string> = {
-  high: "Alta",
-  medium: "Media",
-  low: "Baja",
-};
 
 export function TaskPanel() {
-  const { rows, goal, tasks, setTasks, toggleTask, isLoadingAI } =
-    useDataStore();
-  const completedCount = tasks.filter((t) => t.completed).length;
+  // Leemos las tareas y el estado de carga desde la memoria global
+  const { tasks, isLoadingAI } = useDataStore();
 
-  const handleRefresh = async () => {
-    if (rows.length === 0) return;
-    try {
-      const summary = buildDataSummary(rows, goal?.amount);
-      const raw = await generateTasks(summary);
-
-      // La IA devuelve un JSON como string, lo parseamos aquí
-      const parsed = JSON.parse(raw) as Array<{
-        text: string;
-        priority: "high" | "medium" | "low";
-      }>;
-
-      setTasks(
-        parsed.map((t, i) => ({
-          id: `task-${Date.now()}-${i}`,
-          text: t.text,
-          completed: false,
-          priority: t.priority ?? "medium",
-        })),
-      );
-    } catch {
-      // Si la IA devuelve JSON malformado simplemente no actualizamos
-    }
+  const getPriorityColor = (priority: string) => {
+    if (priority === "high")
+      return {
+        bg: "rgba(239, 68, 68, 0.1)",
+        text: "var(--color-danger)",
+        label: "Urgente",
+      };
+    if (priority === "medium")
+      return {
+        bg: "rgba(245, 158, 11, 0.1)",
+        text: "var(--color-warning)",
+        label: "Media",
+      };
+    return {
+      bg: "rgba(34, 211, 160, 0.1)",
+      text: "var(--color-success)",
+      label: "Normal",
+    };
   };
 
   return (
-    <Card style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-      {/* Cabecera */}
+    <SpotlightCard style={{ height: "100%" }}>
       <div
         style={{
+          padding: "24px",
           display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
+          flexDirection: "column",
+          height: "100%",
         }}
       >
-        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-          <ListTodo size={16} color="var(--color-accent)" />
-          <span
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 12,
+            marginBottom: 20,
+          }}
+        >
+          <div
             style={{
-              fontSize: 14,
-              fontWeight: 500,
+              width: 36,
+              height: 36,
+              borderRadius: "10px",
+              background: "rgba(59, 130, 246, 0.1)",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+          >
+            <ListTodo size={18} color="#3b82f6" />
+          </div>
+          <h3
+            style={{
+              fontSize: 16,
+              fontWeight: 600,
               color: "var(--color-text-primary)",
             }}
           >
-            Acciones sugeridas
-          </span>
+            Plan de Acción
+          </h3>
         </div>
-        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-          {tasks.length > 0 && (
-            <span style={{ fontSize: 12, color: "var(--color-text-muted)" }}>
-              {completedCount}/{tasks.length}
-            </span>
-          )}
-          <Button
-            variant="ghost"
-            size="sm"
-            loading={isLoadingAI}
-            onClick={handleRefresh}
-          >
-            <RefreshCw size={12} />
-          </Button>
-        </div>
-      </div>
 
-      {/* Lista de tareas */}
-      {tasks.length === 0 ? (
-        <p
-          style={{
-            fontSize: 13,
-            color: "var(--color-text-muted)",
-            textAlign: "center",
-            padding: "16px 0",
-          }}
-        >
-          {isLoadingAI
-            ? "Generando tareas..."
-            : "Pulsa el botón para generar tareas."}
-        </p>
-      ) : (
-        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-          {tasks.map((task) => (
-            <button
-              key={task.id}
-              onClick={() => toggleTask(task.id)}
+        <div style={{ flex: 1, overflowY: "auto", paddingRight: 8 }}>
+          {isLoadingAI ? (
+            <div
               style={{
-                display: "flex",
-                alignItems: "flex-start",
-                gap: 10,
-                padding: "10px 12px",
-                borderRadius: "var(--radius-md)",
-                background: task.completed
-                  ? "var(--color-bg-elevated)"
-                  : "var(--color-bg-surface)",
-                border: "1px solid var(--color-border)",
-                cursor: "pointer",
-                textAlign: "left",
-                width: "100%",
-                transition: "all 0.15s ease",
+                animation: "pulse 2s infinite",
+                color: "var(--color-text-muted)",
+                fontSize: 14,
               }}
             >
-              {task.completed ? (
-                <CheckCircle2
-                  size={15}
-                  color="var(--color-success)"
-                  style={{ marginTop: 1, flexShrink: 0 }}
-                />
-              ) : (
-                <Circle
-                  size={15}
-                  color="var(--color-text-muted)"
-                  style={{ marginTop: 1, flexShrink: 0 }}
-                />
-              )}
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <p
-                  style={{
-                    fontSize: 13,
-                    color: task.completed
-                      ? "var(--color-text-muted)"
-                      : "var(--color-text-primary)",
-                    textDecoration: task.completed ? "line-through" : "none",
-                    lineHeight: 1.5,
-                  }}
-                >
-                  {task.text}
-                </p>
-                <span
-                  style={{
-                    fontSize: 11,
-                    fontWeight: 500,
-                    color: priorityColors[task.priority],
-                    marginTop: 3,
-                    display: "block",
-                  }}
-                >
-                  {priorityLabels[task.priority]}
-                </span>
-              </div>
-            </button>
-          ))}
+              Creando plan de acción...
+            </div>
+          ) : tasks.length === 0 ? (
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 8,
+                color: "var(--color-text-muted)",
+                fontSize: 14,
+              }}
+            >
+              <AlertCircle size={16} /> No hay tareas generadas aún.
+            </div>
+          ) : (
+            <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+              {tasks.map((task) => {
+                const priority = getPriorityColor(task.priority);
+                return (
+                  <div
+                    key={task.id}
+                    style={{
+                      display: "flex",
+                      gap: 12,
+                      padding: "16px",
+                      background: "rgba(255,255,255,0.02)",
+                      border: "1px solid var(--color-border)",
+                      borderRadius: "12px",
+                    }}
+                  >
+                    <CheckCircle2
+                      size={18}
+                      color="var(--color-text-muted)"
+                      style={{ marginTop: 2, flexShrink: 0 }}
+                    />
+                    <div style={{ flex: 1 }}>
+                      <p
+                        style={{
+                          fontSize: 14,
+                          color: "var(--color-text-primary)",
+                          lineHeight: "1.4",
+                          marginBottom: 8,
+                        }}
+                      >
+                        {task.text}
+                      </p>
+                      <span
+                        style={{
+                          fontSize: 11,
+                          fontWeight: 600,
+                          padding: "4px 8px",
+                          borderRadius: "6px",
+                          background: priority.bg,
+                          color: priority.text,
+                          textTransform: "uppercase",
+                        }}
+                      >
+                        {priority.label}
+                      </span>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </div>
-      )}
-    </Card>
+      </div>
+    </SpotlightCard>
   );
 }

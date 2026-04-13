@@ -1,6 +1,5 @@
 import { useState, useRef, useEffect } from "react";
-import { Send, MessageSquare, Bot, User } from "lucide-react";
-import { Card } from "../ui/Card";
+import { Send, MessageSquare, Bot, User, X } from "lucide-react";
 import { useDataStore } from "../../stores/dataStore";
 import { chatWithData } from "../../services/api.service";
 import { buildDataSummary } from "../../utils/dataAggregator";
@@ -17,11 +16,10 @@ function MessageBubble({ message }: { message: ChatMessage }) {
         flexDirection: isUser ? "row-reverse" : "row",
       }}
     >
-      {/* Avatar */}
       <div
         style={{
-          width: 24,
-          height: 24,
+          width: 28,
+          height: 28,
           borderRadius: "50%",
           background: isUser
             ? "var(--color-accent-dim)"
@@ -31,29 +29,30 @@ function MessageBubble({ message }: { message: ChatMessage }) {
           alignItems: "center",
           justifyContent: "center",
           flexShrink: 0,
-          marginTop: 2,
         }}
       >
         {isUser ? (
-          <User size={12} color="var(--color-accent)" />
+          <User size={14} color="var(--color-accent)" />
         ) : (
-          <Bot size={12} color="var(--color-text-secondary)" />
+          <Bot size={14} color="var(--color-text-secondary)" />
         )}
       </div>
 
-      {/* Burbuja */}
       <div
         style={{
           maxWidth: "80%",
-          padding: "8px 12px",
-          borderRadius: "var(--radius-md)",
+          padding: "10px 14px",
+          borderRadius: "14px",
+          borderTopRightRadius: isUser ? "4px" : "14px",
+          borderTopLeftRadius: !isUser ? "4px" : "14px",
           background: isUser
-            ? "var(--color-accent-dim)"
+            ? "var(--color-accent)"
             : "var(--color-bg-elevated)",
-          border: `1px solid ${isUser ? "rgba(124,106,255,0.3)" : "var(--color-border)"}`,
+          border: isUser ? "none" : "1px solid var(--color-border)",
           fontSize: 13,
-          color: "var(--color-text-primary)",
-          lineHeight: 1.6,
+          color: isUser ? "white" : "var(--color-text-primary)",
+          lineHeight: 1.5,
+          boxShadow: "0 2px 10px rgba(0,0,0,0.1)",
         }}
       >
         {message.content}
@@ -66,14 +65,14 @@ export function ChatPanel() {
   const { rows, goal, chatHistory, addChatMessage } = useDataStore();
   const [input, setInput] = useState("");
   const [isThinking, setIsThinking] = useState(false);
+  const [isOpen, setIsOpen] = useState(false); // 🔴 Memoria para saber si la ventana está abierta
   const scrollRef = useRef<HTMLDivElement>(null);
 
-  // Scroll automático al último mensaje
   useEffect(() => {
-    if (scrollRef.current) {
+    if (scrollRef.current && isOpen) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }
-  }, [chatHistory, isThinking]);
+  }, [chatHistory, isThinking, isOpen]);
 
   const handleSend = async () => {
     const question = input.trim();
@@ -109,8 +108,7 @@ export function ChatPanel() {
       addChatMessage({
         id: `err-${Date.now()}`,
         role: "assistant",
-        content:
-          "No pude conectar con el servidor. Comprueba que el backend está corriendo.",
+        content: "No pude conectar con el servidor. Comprueba la conexión.",
         timestamp: Date.now(),
       });
     } finally {
@@ -126,184 +124,292 @@ export function ChatPanel() {
   };
 
   return (
-    <Card
-      padding="none"
-      style={{ display: "flex", flexDirection: "column", height: 380 }}
-    >
-      {/* Cabecera */}
-      <div
+    <>
+      {/* 🔴 EL BOTÓN FLOTANTE (La "Bolita") */}
+      <button
+        onClick={() => setIsOpen(!isOpen)}
         style={{
+          position: "fixed",
+          bottom: 30,
+          right: 30,
+          width: 56,
+          height: 56,
+          borderRadius: "50%",
+          background:
+            "linear-gradient(135deg, var(--color-accent) 0%, #9333ea 100%)",
+          border: "none",
           display: "flex",
           alignItems: "center",
-          gap: 8,
-          padding: "12px 16px",
-          borderBottom: "1px solid var(--color-border)",
+          justifyContent: "center",
+          cursor: "pointer",
+          boxShadow: "0 8px 25px rgba(124, 58, 237, 0.4)",
+          zIndex: 50,
+          transition: "transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275)",
+          transform: isOpen
+            ? "scale(0.9) rotate(90deg)"
+            : "scale(1) rotate(0deg)",
         }}
       >
-        <MessageSquare size={15} color="var(--color-accent)" />
-        <span
+        {isOpen ? (
+          <X size={24} color="white" />
+        ) : (
+          <MessageSquare size={24} color="white" />
+        )}
+      </button>
+
+      {/* 🔴 LA VENTANA DEL CHAT */}
+      {isOpen && (
+        <div
           style={{
-            fontSize: 14,
-            fontWeight: 500,
-            color: "var(--color-text-primary)",
+            position: "fixed",
+            bottom: 100, // Justo encima del botón flotante
+            right: 30,
+            width: 350,
+            height: 500,
+            background: "rgba(10, 10, 15, 0.85)",
+            backdropFilter: "blur(20px)",
+            WebkitBackdropFilter: "blur(20px)",
+            border: "1px solid var(--color-border)",
+            borderRadius: 20,
+            boxShadow:
+              "0 10px 40px rgba(0,0,0,0.5), 0 0 0 1px rgba(124,58,237,0.1)",
+            display: "flex",
+            flexDirection: "column",
+            zIndex: 49,
+            overflow: "hidden",
+            animation: "fadeSlideUp 0.3s ease-out forwards",
           }}
         >
-          Chat con tus datos
-        </span>
-      </div>
-
-      {/* Mensajes */}
-      <div
-        ref={scrollRef}
-        style={{
-          flex: 1,
-          overflowY: "auto",
-          padding: "16px",
-          display: "flex",
-          flexDirection: "column",
-          gap: 12,
-        }}
-      >
-        {chatHistory.length === 0 ? (
+          {/* Cabecera del Chat */}
           <div
             style={{
-              flex: 1,
               display: "flex",
-              flexDirection: "column",
               alignItems: "center",
-              justifyContent: "center",
-              gap: 8,
-              textAlign: "center",
+              gap: 12,
+              padding: "16px 20px",
+              background: "rgba(124, 58, 237, 0.1)",
+              borderBottom: "1px solid rgba(124, 58, 237, 0.2)",
             }}
           >
-            <Bot size={24} color="var(--color-text-muted)" />
-            <p style={{ fontSize: 13, color: "var(--color-text-muted)" }}>
-              Pregúntame sobre tus datos
-            </p>
-            <p
+            <div
               style={{
-                fontSize: 11,
-                color: "var(--color-text-muted)",
-                opacity: 0.6,
+                width: 32,
+                height: 32,
+                borderRadius: "50%",
+                background: "var(--color-accent)",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
               }}
             >
-              Ej: "¿Cuál fue mi mejor mes?"
-            </p>
+              <Bot size={18} color="white" />
+            </div>
+            <div>
+              <h3
+                style={{
+                  fontSize: 15,
+                  fontWeight: 600,
+                  color: "var(--color-text-primary)",
+                  margin: 0,
+                }}
+              >
+                Consultor IA
+              </h3>
+              <p
+                style={{
+                  fontSize: 11,
+                  color: "var(--color-accent)",
+                  margin: "2px 0 0",
+                }}
+              >
+                En línea • Analizando tus datos
+              </p>
+            </div>
           </div>
-        ) : (
-          <>
-            {chatHistory.map((msg) => (
-              <MessageBubble key={msg.id} message={msg} />
-            ))}
-            {isThinking && (
-              <div style={{ display: "flex", gap: 8 }}>
+
+          {/* Zona de Mensajes */}
+          <div
+            ref={scrollRef}
+            style={{
+              flex: 1,
+              overflowY: "auto",
+              padding: "20px",
+              display: "flex",
+              flexDirection: "column",
+              gap: 16,
+            }}
+          >
+            {chatHistory.length === 0 ? (
+              <div
+                style={{
+                  flex: 1,
+                  display: "flex",
+                  flexDirection: "column",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  gap: 12,
+                  textAlign: "center",
+                }}
+              >
                 <div
                   style={{
-                    width: 24,
-                    height: 24,
+                    width: 48,
+                    height: 48,
                     borderRadius: "50%",
                     background: "var(--color-bg-elevated)",
-                    border: "1px solid var(--color-border)",
                     display: "flex",
                     alignItems: "center",
                     justifyContent: "center",
-                    flexShrink: 0,
                   }}
                 >
-                  <Bot size={12} color="var(--color-text-secondary)" />
+                  <MessageSquare size={24} color="var(--color-text-muted)" />
                 </div>
-                <div
-                  style={{
-                    padding: "8px 12px",
-                    borderRadius: "var(--radius-md)",
-                    background: "var(--color-bg-elevated)",
-                    border: "1px solid var(--color-border)",
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 4,
-                  }}
-                >
-                  {[0, 1, 2].map((i) => (
-                    <div
-                      key={i}
-                      style={{
-                        width: 6,
-                        height: 6,
-                        borderRadius: "50%",
-                        background: "var(--color-text-muted)",
-                        animation: `pulse 1.2s ease-in-out ${i * 0.2}s infinite`,
-                      }}
-                    />
-                  ))}
+                <div>
+                  <p
+                    style={{
+                      fontSize: 14,
+                      fontWeight: 500,
+                      color: "var(--color-text-primary)",
+                      margin: "0 0 4px",
+                    }}
+                  >
+                    ¿En qué puedo ayudarte?
+                  </p>
+                  <p
+                    style={{
+                      fontSize: 12,
+                      color: "var(--color-text-muted)",
+                      margin: 0,
+                    }}
+                  >
+                    Pregúntame sobre tendencias, gastos o consejos para llegar a
+                    tu meta.
+                  </p>
                 </div>
               </div>
-            )}
-          </>
-        )}
-      </div>
+            ) : (
+              <>
+                {chatHistory.map((msg) => (
+                  <MessageBubble key={msg.id} message={msg} />
+                ))}
 
-      {/* Input */}
-      <div
-        style={{
-          padding: "10px 12px",
-          borderTop: "1px solid var(--color-border)",
-          display: "flex",
-          gap: 8,
-        }}
-      >
-        <input
-          type="text"
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
-          onKeyDown={handleKeyDown}
-          placeholder={
-            rows.length === 0
-              ? "Carga un CSV primero..."
-              : "Pregunta sobre tus datos..."
-          }
-          disabled={isThinking || rows.length === 0}
-          style={{
-            flex: 1,
-            padding: "8px 12px",
-            fontSize: 13,
-            borderRadius: "var(--radius-md)",
-            background: "var(--color-bg-elevated)",
-            border: "1px solid var(--color-border)",
-            color: "var(--color-text-primary)",
-            outline: "none",
-            fontFamily: "var(--font-sans)",
-          }}
-          onFocus={(e) => {
-            e.target.style.borderColor = "var(--color-accent)";
-          }}
-          onBlur={(e) => {
-            e.target.style.borderColor = "var(--color-border)";
-          }}
-        />
-        <button
-          onClick={handleSend}
-          disabled={!input.trim() || isThinking || rows.length === 0}
-          style={{
-            width: 36,
-            height: 36,
-            borderRadius: "var(--radius-md)",
-            background:
-              input.trim() && !isThinking
-                ? "var(--color-accent)"
-                : "var(--color-bg-elevated)",
-            border: "1px solid var(--color-border)",
-            cursor: input.trim() && !isThinking ? "pointer" : "not-allowed",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            transition: "all 0.15s ease",
-            flexShrink: 0,
-            opacity: !input.trim() || isThinking ? 0.4 : 1,
-          }}
-        >
-          <Send size={13} color="white" />
-        </button>
-      </div>
-    </Card>
+                {isThinking && (
+                  <div style={{ display: "flex", gap: 8 }}>
+                    <div
+                      style={{
+                        width: 28,
+                        height: 28,
+                        borderRadius: "50%",
+                        background: "var(--color-bg-elevated)",
+                        border: "1px solid var(--color-border)",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        flexShrink: 0,
+                      }}
+                    >
+                      <Bot size={14} color="var(--color-text-secondary)" />
+                    </div>
+                    <div
+                      style={{
+                        padding: "12px 16px",
+                        borderRadius: "14px",
+                        borderTopLeftRadius: "4px",
+                        background: "var(--color-bg-elevated)",
+                        border: "1px solid var(--color-border)",
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 4,
+                      }}
+                    >
+                      {[0, 1, 2].map((i) => (
+                        <div
+                          key={i}
+                          style={{
+                            width: 6,
+                            height: 6,
+                            borderRadius: "50%",
+                            background: "var(--color-text-muted)",
+                            animation: `pulse 1.2s ease-in-out ${i * 0.2}s infinite`,
+                          }}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </>
+            )}
+          </div>
+
+          {/* Caja de Escritura */}
+          <div
+            style={{
+              padding: "16px",
+              borderTop: "1px solid var(--color-border)",
+              background: "rgba(10, 10, 15, 0.95)",
+            }}
+          >
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 8,
+                background: "var(--color-bg-base)",
+                border: "1px solid var(--color-border-hover)",
+                padding: "4px 4px 4px 16px",
+                borderRadius: "24px",
+              }}
+            >
+              <input
+                type="text"
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+                onKeyDown={handleKeyDown}
+                placeholder="Escribe tu consulta..."
+                disabled={isThinking || rows.length === 0}
+                style={{
+                  flex: 1,
+                  background: "transparent",
+                  border: "none",
+                  color: "var(--color-text-primary)",
+                  fontSize: 14,
+                  outline: "none",
+                }}
+              />
+              <button
+                onClick={handleSend}
+                disabled={!input.trim() || isThinking || rows.length === 0}
+                style={{
+                  width: 36,
+                  height: 36,
+                  borderRadius: "50%",
+                  background:
+                    input.trim() && !isThinking
+                      ? "var(--color-accent)"
+                      : "transparent",
+                  border: "none",
+                  cursor: input.trim() && !isThinking ? "pointer" : "default",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  flexShrink: 0,
+                  transition: "background 0.2s",
+                }}
+              >
+                <Send
+                  size={16}
+                  color={
+                    input.trim() && !isThinking
+                      ? "white"
+                      : "var(--color-text-muted)"
+                  }
+                  style={{ marginLeft: input.trim() && !isThinking ? 2 : 0 }}
+                />
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
   );
 }

@@ -4,7 +4,6 @@ import {
   Users,
   FileText,
   Settings,
-  HelpCircle,
   LogOut,
 } from "lucide-react";
 import { useAuthStore } from "../../stores/authStore";

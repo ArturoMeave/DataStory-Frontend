@@ -1,41 +1,59 @@
 import React from "react";
-import { Card } from "../ui/Card";
+import { SpotlightCard } from "../ui/SpotlightCard";
 
 interface ChartContainerProps {
   id?: string;
   title: string;
   subtitle?: string;
   height?: number;
-  children: React.ReactNode;
+  children: React.ReactNode; // ¡Esto es lo que faltaba! El hueco para el gráfico
 }
 
 export function ChartContainer({
-  id,
   title,
   subtitle,
-  height = 240, // Altura reducida de 280 a 240
+  height = 300,
   children,
 }: ChartContainerProps) {
   return (
-    <Card id={id} style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-      <div>
-        <p
-          style={{
-            fontSize: 14,
-            fontWeight: 600,
-            color: "var(--color-text-primary)",
-            marginBottom: 2,
-          }}
-        >
-          {title}
-        </p>
-        {subtitle && (
-          <p style={{ fontSize: 12, color: "var(--color-text-muted)" }}>
-            {subtitle}
-          </p>
-        )}
+    <SpotlightCard style={{ width: "100%", overflow: "visible" }}>
+      <div
+        style={{
+          padding: "24px",
+          display: "flex",
+          flexDirection: "column",
+          // Le damos la altura que pide el gráfico + espacio para el título
+          height: height + 80,
+        }}
+      >
+        {/* Cabecera del gráfico */}
+        <div style={{ marginBottom: 16 }}>
+          <h3
+            style={{
+              fontSize: 16,
+              fontWeight: 600,
+              color: "var(--color-text-primary)",
+              margin: 0,
+            }}
+          >
+            {title}
+          </h3>
+          {subtitle && (
+            <p
+              style={{
+                fontSize: 13,
+                color: "var(--color-text-muted)",
+                margin: "4px 0 0 0",
+              }}
+            >
+              {subtitle}
+            </p>
+          )}
+        </div>
+
+        {/* El lienzo donde Recharts dibujará sin aplastarse */}
+        <div style={{ flex: 1, minHeight: 0, width: "100%" }}>{children}</div>
       </div>
-      <div style={{ width: "100%", height }}>{children}</div>
-    </Card>
+    </SpotlightCard>
   );
 }
