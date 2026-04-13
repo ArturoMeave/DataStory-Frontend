@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { LandingPage } from "./pages/LandingPage";
 import { DashboardPage } from "./pages/DashboardPage";
@@ -9,9 +10,21 @@ import { SettingsPage } from "./pages/SettingsPage";
 import { ProtectedRoute } from "./components/layout/ProtectedRoute";
 import { AuthCallbackPage } from "./pages/AuthCallbackPage";
 import { TeamPage } from "./pages/TeamPage";
-import { JoinPage } from "./pages/JoinPage"; // <-- Añadido el import de la nueva página
+import { JoinPage } from "./pages/JoinPage";
+import { useThemeStore } from "./stores/themeStore"; // <-- El almacén del tema
 
 export function App() {
+  const { theme } = useThemeStore(); // <-- Traemos el estado del tema
+
+  // ── EL CABLE QUE CONECTA EL BOTÓN CON LA WEB ──
+  useEffect(() => {
+    if (theme === "light") {
+      document.documentElement.classList.add("light-mode");
+    } else {
+      document.documentElement.classList.remove("light-mode");
+    }
+  }, [theme]);
+
   return (
     <BrowserRouter>
       {/* ── ESTE ES EL FONDO MÁGICO PARA TODA LA WEB ── */}

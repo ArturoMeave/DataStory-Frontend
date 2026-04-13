@@ -602,7 +602,7 @@ export function SettingsPage() {
           style={{
             padding: "20px 32px",
             borderBottom: "1px solid var(--color-border)",
-            background: "rgba(10,10,15,0.85)",
+            background: "var(--color-bg-card)",
             backdropFilter: "blur(12px)",
             position: "sticky",
             top: 0,

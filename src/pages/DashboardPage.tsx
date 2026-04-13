@@ -291,7 +291,7 @@ export function DashboardPage() {
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "space-between",
-                background: "rgba(3,3,7,0.5)",
+                background: "var(--color-bg-card)",
                 backdropFilter: "blur(25px)",
                 zIndex: 20,
               }}
@@ -475,7 +475,7 @@ export function DashboardPage() {
                       display: "flex",
                       alignItems: "center",
                       justifyContent: "space-between",
-                      background: "rgba(10,10,15,0.6)",
+                      background: "var(--color-bg-card)",
                       padding: "6px",
                       borderRadius: 12,
                       border: "1px solid var(--color-border)",
@@ -519,7 +519,7 @@ export function DashboardPage() {
                   <div
                     style={{
                       display: "flex",
-                      background: "rgba(10,10,15,0.6)",
+                      background: "var(--color-bg-card)",
                       padding: "6px",
                       borderRadius: 12,
                       border: "1px solid var(--color-border)",

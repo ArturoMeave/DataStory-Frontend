@@ -30,11 +30,32 @@
   --radius-lg: 24px;
 }
 
+/* ── LOS COLORES DEL MODO CLARO (La luz del día) ── */
+:root.light-mode {
+  --color-bg-base: #f8fafc;
+  --color-bg-surface: #ffffff;
+  
+  --color-bg-card: rgba(255, 255, 255, 0.8);
+  --color-bg-elevated: rgba(255, 255, 255, 1);
+  
+  --color-border: rgba(139, 92, 246, 0.15);
+  --color-border-hover: rgba(139, 92, 246, 0.4);
+  
+  --color-text-primary: #0f172a;
+  --color-text-secondary: #334155;
+  --color-text-muted: #64748b;
+  
+  /* Los orbes en modo claro los hacemos más suaves */
+  --color-accent-dim: rgba(139, 92, 246, 0.05);
+}
+
 body {
   background-color: var(--color-bg-base);
   color: var(--color-text-primary);
   margin: 0;
   overflow-x: hidden;
+  /* Transición suave para que el cambio no sea un pantallazo */
+  transition: background-color 0.4s ease, color 0.4s ease;
 }
 
 /* ── EL FONDO ANIMADO PARA TODA LA WEB (Tu aportación genial) ── */
@@ -44,6 +65,7 @@ body {
   z-index: -10;
   background-color: var(--color-bg-base);
   overflow: hidden;
+  transition: background-color 0.4s ease;
 }
 
 /* El grid de Wall Street (puntos sutiles) */
@@ -51,8 +73,9 @@ body {
   content: '';
   position: absolute;
   inset: 0;
-  background-image: radial-gradient(circle, rgba(255,255,255,0.06) 1px, transparent 1px);
+  background-image: radial-gradient(circle, var(--color-text-muted) 1px, transparent 1px);
   background-size: 32px 32px;
+  opacity: 0.15;
   mask-image: radial-gradient(ellipse 100% 100% at 50% 50%, black 20%, transparent 80%);
   -webkit-mask-image: radial-gradient(ellipse 100% 100% at 50% 50%, black 20%, transparent 80%);
 }
@@ -64,7 +87,15 @@ body {
   filter: blur(120px); /* Desenfoque más suave para fusionarse mejor */
   opacity: 0.15;
   animation: float 20s infinite alternate ease-in-out;
+  transition: opacity 0.4s ease;
 }
+
+/* En modo claro bajamos un poco la opacidad de los orbes para que no deslumbren */
+:root.light-mode .orb-1, 
+:root.light-mode .orb-2 {
+  opacity: 0.08;
+}
+
 .orb-1 {
   width: 600px; height: 600px;
   background: var(--color-accent);

@@ -34,7 +34,7 @@ export function Navbar({ onExportPDF, onShare, onUploadNew }: NavbarProps) {
         top: 0,
         zIndex: 40,
         width: "100%",
-        background: "rgba(10,10,15,0.85)",
+        background: "var(--color-bg-card)",
         backdropFilter: "blur(12px)",
         borderBottom: "1px solid var(--color-border)",
       }}

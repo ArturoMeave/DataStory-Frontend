@@ -138,7 +138,7 @@ export function TeamPage() {
           style={{
             padding: "24px 32px",
             borderBottom: "1px solid var(--color-border)",
-            background: "rgba(10,10,15,0.4)",
+            background: "var(--color-bg-card)",
             backdropFilter: "blur(12px)",
             zIndex: 20,
           }}
@@ -577,8 +577,8 @@ export function TeamPage() {
                                 <option
                                   value="EDITOR"
                                   style={{
-                                    background: "#0a0a0f",
-                                    color: "white",
+                                    background: "var(--color-bg-surface)",
+                                    color: "var(--color-text-primary)",
                                     padding: "10px",
                                   }}
                                 >
@@ -587,8 +587,8 @@ export function TeamPage() {
                                 <option
                                   value="ADMIN"
                                   style={{
-                                    background: "#0a0a0f",
-                                    color: "white",
+                                    background: "var(--color-bg-surface)",
+                                    color: "var(--color-text-primary)",
                                     padding: "10px",
                                   }}
                                 >

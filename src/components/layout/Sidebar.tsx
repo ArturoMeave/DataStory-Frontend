@@ -28,9 +28,9 @@ export function Sidebar() {
         position: "fixed",
         left: 0,
         top: 0,
-        background: "var(--color-bg-card)",
+        background: "var(--color-bg-surface)",
         borderRight: "1px solid var(--color-border)",
-        padding: "32px 20px",
+        padding: "24px 20px",
         zIndex: 30,
       }}
     >
