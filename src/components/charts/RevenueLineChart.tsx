@@ -148,7 +148,14 @@ export function RevenueLineChart() {
             }
             width={64}
           />
-          <Tooltip content={<CustomTooltip />} />
+          <Tooltip
+            content={<CustomTooltip />}
+            cursor={{
+              stroke: "rgba(255,255,255,0.15)",
+              strokeWidth: 1,
+              strokeDasharray: "4 4",
+            }}
+          />
 
           <Area
             type="monotone"
@@ -160,7 +167,15 @@ export function RevenueLineChart() {
             dot={(props: any) => (
               <CustomDot {...props} anomalyIndices={anomalyIndices} />
             )}
-            activeDot={{ r: 5, fill: COLORS.line, strokeWidth: 0 }}
+            activeDot={{
+              r: 7,
+              fill: COLORS.line,
+              stroke: "#fff",
+              strokeWidth: 2,
+              style: {
+                filter: "drop-shadow(0px 0px 8px rgba(124,106,255,0.8))",
+              },
+            }}
           />
 
           {forecastPoints.length > 0 && (
@@ -177,7 +192,15 @@ export function RevenueLineChart() {
               strokeWidth={2}
               strokeDasharray="6 4"
               dot={false}
-              activeDot={{ r: 4, fill: COLORS.forecast, strokeWidth: 0 }}
+              activeDot={{
+                r: 6,
+                fill: COLORS.forecast,
+                stroke: "#fff",
+                strokeWidth: 1,
+                style: {
+                  filter: "drop-shadow(0px 0px 6px rgba(124,106,255,0.5))",
+                },
+              }}
             />
           )}
 

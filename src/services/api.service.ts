@@ -1,16 +1,11 @@
 const BASE_URL = import.meta.env.VITE_API_URL ?? "http://localhost:3001";
 
-// Función base que hace todas las peticiones HTTP.
-// Centraliza el manejo de errores para que no lo repitamos en cada llamada.
 async function request<T>(endpoint: string, options?: RequestInit): Promise<T> {
-  // Leemos el token directamente del localStorage
-  // para no crear dependencias circulares con el store
   const token = localStorage.getItem("datastory_token");
 
   const response = await fetch(`${BASE_URL}${endpoint}`, {
     headers: {
       "Content-Type": "application/json",
-      // Si hay token lo añadimos en la cabecera Authorization
       ...(token && { Authorization: `Bearer ${token}` }),
       ...options?.headers,
     },
@@ -27,7 +22,7 @@ async function request<T>(endpoint: string, options?: RequestInit): Promise<T> {
   return response.json() as Promise<T>;
 }
 
-// ── IA ────────────────────────────────────────────────────────────────────────
+
 
 export async function generateSummary(dataSummary: string): Promise<string> {
   const data = await request<{ content: string }>("/api/ai/generate", {
@@ -81,7 +76,7 @@ Responde en español, de forma concisa y directa.`,
   return data.content;
 }
 
-// ── Snapshots ─────────────────────────────────────────────────────────────────
+
 
 export async function saveSnapshot(snapshotData: {
   userId: string;
@@ -134,7 +129,6 @@ export async function getSnapshots(): Promise<any[]> {
 }
 
 export async function getSharedSnapshot(id: string): Promise<any> {
-  // Petición pública sin token para compartir
   const response = await fetch(`${BASE_URL}/api/snapshots/share/${id}`, {
     method: "GET",
     headers: { "Content-Type": "application/json" },

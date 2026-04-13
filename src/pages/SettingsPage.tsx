@@ -493,7 +493,7 @@ export function SettingsPage() {
                   lineHeight: 1.6,
                 }}
               >
-                ⚠️ Se eliminarán permanentemente: tu perfil, todos tus análisis
+                Se eliminarán permanentemente: tu perfil, todos tus análisis
                 financieros, historial de snapshots y configuración de alertas.
               </p>
             </div>

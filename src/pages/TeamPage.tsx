@@ -111,11 +111,8 @@ export function TeamPage() {
     }
   };
 
-  // 👇 LA GRAN CORRECCIÓN:
-  // Buscamos tu perfil "fresco" directamente desde la base de datos (la lista de miembros)
   const currentUser = members.find((m) => m.id === user?.id);
 
-  // Eres admin si la memoria fresca (currentUser) o la local (user) lo dicen.
   const isAdmin =
     currentUser?.role === "ADMIN" ||
     currentUser?.role === "OWNER" ||

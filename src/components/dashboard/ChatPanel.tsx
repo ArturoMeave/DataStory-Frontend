@@ -65,7 +65,7 @@ export function ChatPanel() {
   const { rows, goal, chatHistory, addChatMessage } = useDataStore();
   const [input, setInput] = useState("");
   const [isThinking, setIsThinking] = useState(false);
-  const [isOpen, setIsOpen] = useState(false); // 🔴 Memoria para saber si la ventana está abierta
+  const [isOpen, setIsOpen] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -125,7 +125,7 @@ export function ChatPanel() {
 
   return (
     <>
-      {/* 🔴 EL BOTÓN FLOTANTE (La "Bolita") */}
+
       <button
         onClick={() => setIsOpen(!isOpen)}
         style={{
@@ -157,7 +157,7 @@ export function ChatPanel() {
         )}
       </button>
 
-      {/* 🔴 LA VENTANA DEL CHAT */}
+
       {isOpen && (
         <div
           style={{

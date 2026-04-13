@@ -7,6 +7,7 @@ import {
   CartesianGrid,
   Tooltip,
   Cell,
+  Rectangle,
 } from "recharts";
 import { useDataStore } from "../../stores/dataStore";
 import { isAnomalyIndex } from "../../utils/anomalyDetector";
@@ -154,7 +155,22 @@ export function ExpenseBarChart() {
             content={<CustomTooltip />}
             cursor={{ fill: "rgba(255,255,255,0.02)" }}
           />
-          <Bar dataKey="expenses" radius={[3, 3, 0, 0]}>
+          <Bar
+            dataKey="expenses"
+            radius={[3, 3, 0, 0]}
+            activeBar={
+              <Rectangle
+                fill="var(--color-accent)"
+                stroke="#fff"
+                strokeWidth={2}
+                style={{
+                  filter: "drop-shadow(0px 0px 8px var(--color-accent-dim))",
+                  transform: "scaleY(1.05)",
+                  transformOrigin: "bottom",
+                }}
+              />
+            }
+          >
             {chartData.map((entry, i) => (
               <Cell
                 key={i}
@@ -165,6 +181,7 @@ export function ExpenseBarChart() {
                   entry._isAnomaly ? COLORS.anomalyStroke : COLORS.barStroke
                 }
                 strokeWidth={1}
+                style={{ transition: "opacity 0.2s", opacity: 0.8 }}
               />
             ))}
           </Bar>
