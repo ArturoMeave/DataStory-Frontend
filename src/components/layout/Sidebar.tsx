@@ -5,12 +5,13 @@ import {
   FileText,
   Settings,
   LogOut,
+  ShoppingBag, // <-- 1. Importamos el icono de la bolsa de compras para Shopify
 } from "lucide-react";
 import { useAuthStore } from "../../stores/authStore";
 
 const navItems = [
   { icon: LayoutDashboard, label: "Dashboard", path: "/dashboard" },
-  { icon: Users, label: "Team", path: "/team" }, // <-- ESTA ES LA PUERTA CORRECTA
+  { icon: Users, label: "Team", path: "/team" },
   { icon: FileText, label: "Reports", path: "/history" },
   { icon: Settings, label: "Settings", path: "/settings" },
 ];
@@ -58,6 +59,7 @@ export function Sidebar() {
         <span style={{ fontSize: 20, fontWeight: 600 }}>Outrunix</span>
       </div>
 
+      {/* ── MENÚ PRINCIPAL ── */}
       <nav style={{ display: "flex", flexDirection: "column", gap: 8 }}>
         {navItems.map(({ icon: Icon, label, path }) => {
           const active = location.pathname === path;
@@ -86,6 +88,52 @@ export function Sidebar() {
         })}
       </nav>
 
+      {/* ── 2. SECCIÓN DE INTEGRACIONES (NUEVO) ── */}
+      <div
+        style={{
+          marginTop: 24,
+          paddingTop: 16,
+          borderTop: "1px solid var(--color-border)",
+        }}
+      >
+        <p
+          style={{
+            fontSize: 11,
+            color: "var(--color-text-secondary)",
+            fontWeight: 600,
+            paddingLeft: 16,
+            marginBottom: 8,
+            letterSpacing: 1,
+          }}
+        >
+          INTEGRACIONES
+        </p>
+        <button
+          onClick={() => navigate("/shopify")}
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 12,
+            width: "100%",
+            padding: "12px 16px",
+            borderRadius: 100,
+            background: location.pathname.startsWith("/shopify")
+              ? "var(--color-accent)"
+              : "transparent",
+            border: "none",
+            color: location.pathname.startsWith("/shopify")
+              ? "white"
+              : "var(--color-text-secondary)",
+            cursor: "pointer",
+            textAlign: "left",
+          }}
+        >
+          <ShoppingBag size={18} />
+          <span style={{ fontWeight: 500 }}>Shopify Hub</span>
+        </button>
+      </div>
+
+      {/* ── BOTÓN DE SALIR ── */}
       <div
         style={{
           marginTop: "auto",

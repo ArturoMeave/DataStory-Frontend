@@ -11,10 +11,13 @@ import { ProtectedRoute } from "./components/layout/ProtectedRoute";
 import { AuthCallbackPage } from "./pages/AuthCallbackPage";
 import { TeamPage } from "./pages/TeamPage";
 import { JoinPage } from "./pages/JoinPage";
-import { useThemeStore } from "./stores/themeStore"; // <-- El almacén del tema
+import { useThemeStore } from "./stores/themeStore";
+
+// 1. IMPORTAMOS LA NUEVA PÁGINA DE SHOPIFY
+import { ShopifyDashboardPage } from "./pages/ShopifyDashboardPage";
 
 export function App() {
-  const { theme } = useThemeStore(); // <-- Traemos el estado del tema
+  const { theme } = useThemeStore();
 
   // ── EL CABLE QUE CONECTA EL BOTÓN CON LA WEB ──
   useEffect(() => {
@@ -50,6 +53,17 @@ export function App() {
             </ProtectedRoute>
           }
         />
+
+        {/* 2. AQUÍ ESTÁ LA NUEVA PUERTA PARA SHOPIFY */}
+        <Route
+          path="/shopify/*"
+          element={
+            <ProtectedRoute>
+              <ShopifyDashboardPage />
+            </ProtectedRoute>
+          }
+        />
+
         <Route
           path="/team"
           element={
