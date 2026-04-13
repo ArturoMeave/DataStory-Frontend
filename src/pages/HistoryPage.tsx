@@ -25,19 +25,16 @@ export function HistoryPage() {
   }, []);
 
   return (
-    <div style={{ display: "flex", minHeight: "100vh", background: "var(--color-bg-base)" }}>
-      {/* Sidebar */}
+    <div style={{ display: "flex", height: "100vh", overflow: "hidden", background: "transparent" }}>
       <Sidebar />
-
-      {/* Main Content */}
-      <div style={{ marginLeft: 220, flex: 1, display: "flex", flexDirection: "column", minHeight: "100vh" }}>
+      <div style={{ marginLeft: 260, flex: 1, display: "flex", flexDirection: "column", height: "100vh", overflow: "hidden" }}>
         
         {/* Header */}
         <header
           style={{
             padding: "20px 32px",
             borderBottom: "1px solid var(--color-border)",
-            background: "rgba(10,10,15,0.85)",
+            background: "var(--color-bg-card)",
             backdropFilter: "blur(12px)",
             position: "sticky",
             top: 0,

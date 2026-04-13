@@ -221,8 +221,9 @@ export function SettingsPage() {
     <div
       style={{
         display: "flex",
-        minHeight: "100vh",
-        background: "var(--color-bg-base)",
+        height: "100vh",
+        overflow: "hidden",
+        background: "transparent",
       }}
     >
       <Sidebar />
@@ -591,11 +592,12 @@ export function SettingsPage() {
 
       <div
         style={{
-          marginLeft: 220,
+          marginLeft: 260,
           flex: 1,
           display: "flex",
           flexDirection: "column",
-          minHeight: "100vh",
+          height: "100vh",
+          overflow: "hidden",
         }}
       >
         <header
