@@ -5,16 +5,11 @@ import { Overview } from "../components/shopify/Overview";
 import { Products } from "../components/shopify/Products";
 import { Orders } from "../components/shopify/Orders";
 import { Customers } from "../components/shopify/Customers";
+import { ExcelImport } from "../components/shopify/ExcelImport";
 import { Analytics } from "../components/shopify/Analytics.tsx";
 import { useShopifyStore } from "../stores/shopifyStore";
 import { useAuthStore } from "../stores/authStore";
 import { LayoutDashboard, Package, ShoppingCart } from "lucide-react";
-
-const ExcelImport = () => (
-  <div style={{ color: "var(--color-text-primary)", padding: 20 }}>
-    📤 Excel...
-  </div>
-);
 
 export function ShopifyDashboardPage() {
   const { isConnected, setConnection, activeView, setActiveView } =
