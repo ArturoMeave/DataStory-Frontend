@@ -4,15 +4,11 @@ import { Navbar } from "../components/layout/Navbar";
 import { Overview } from "../components/shopify/Overview";
 import { Products } from "../components/shopify/Products";
 import { Orders } from "../components/shopify/Orders";
+import { Customers } from "../components/shopify/Customers";
 import { useShopifyStore } from "../stores/shopifyStore";
 import { useAuthStore } from "../stores/authStore";
 import { LayoutDashboard, Package, ShoppingCart } from "lucide-react";
 
-const Customers = () => (
-  <div style={{ color: "var(--color-text-primary)", padding: 20 }}>
-    👥 Clientes...
-  </div>
-);
 const Analytics = () => (
   <div style={{ color: "var(--color-text-primary)", padding: 20 }}>
     📈 Analytics...
