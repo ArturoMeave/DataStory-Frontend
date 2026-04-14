@@ -3,15 +3,11 @@ import { Sidebar } from "../components/layout/Sidebar";
 import { Navbar } from "../components/layout/Navbar";
 import { Overview } from "../components/shopify/Overview";
 import { Products } from "../components/shopify/Products";
+import { Orders } from "../components/shopify/Orders";
 import { useShopifyStore } from "../stores/shopifyStore";
 import { useAuthStore } from "../stores/authStore";
 import { LayoutDashboard, Package, ShoppingCart } from "lucide-react";
 
-const Orders = () => (
-  <div style={{ color: "var(--color-text-primary)", padding: 20 }}>
-    🛒 Pedidos...
-  </div>
-);
 const Customers = () => (
   <div style={{ color: "var(--color-text-primary)", padding: 20 }}>
     👥 Clientes...
