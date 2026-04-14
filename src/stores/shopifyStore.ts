@@ -1,12 +1,18 @@
 import { create } from "zustand";
 
-// Definimos qué cosas puede recordar nuestro cerebro de Shopify
 interface ShopifyState {
-  activeView: string; // Ejemplo: 'overview', 'products', etc.
+  isConnected: boolean;
+  shopName: string | null;
+  setConnection: (status: boolean, name?: string) => void;
+  activeView: string;
   setActiveView: (view: string) => void;
 }
 
 export const useShopifyStore = create<ShopifyState>((set) => ({
-  activeView: "overview", // Empezamos siempre viendo el resumen
+  isConnected: false,
+  shopName: null,
+  setConnection: (status, name) =>
+    set({ isConnected: status, shopName: name || null }),
+  activeView: "overview",
   setActiveView: (view) => set({ activeView: view }),
 }));
