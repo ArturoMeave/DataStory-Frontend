@@ -5,14 +5,27 @@ import { Products } from "../components/shopify/Products";
 import { Orders } from "../components/shopify/Orders";
 import { Customers } from "../components/shopify/Customers";
 import { ExcelImport } from "../components/shopify/ExcelImport";
-import { Analytics } from "../components/shopify/Analytics.tsx";
+import { AiDocumentAnalyst } from "../components/shopify/AiDocumentAnalyst";
+import { Analytics } from "../components/shopify/Analytics";
 import { useShopifyStore } from "../stores/shopifyStore";
 import { useAuthStore } from "../stores/authStore";
-import { LayoutDashboard, Package, ShoppingCart } from "lucide-react";
+import {
+  LayoutDashboard,
+  Package,
+  ShoppingCart,
+  AlertCircle,
+} from "lucide-react";
 
 export function ShopifyDashboardPage() {
-  const { isConnected, setConnection, activeView, setActiveView } =
-    useShopifyStore();
+  // Traemos isSkipped y setIsSkipped del store
+  const {
+    isConnected,
+    isSkipped,
+    setConnection,
+    setIsSkipped,
+    activeView,
+    setActiveView,
+  } = useShopifyStore();
   const { user } = useAuthStore();
   const [shopUrl, setShopUrl] = useState("");
 
@@ -48,18 +61,139 @@ export function ShopifyDashboardPage() {
         return <Analytics />;
       case "excel":
         return <ExcelImport />;
+      case "ai-docs":
+        return <AiDocumentAnalyst />;
       default:
         return <Overview />;
     }
   };
 
+  // ─── LA PUERTA (SETUP GATE): Sin conexión y sin haber omitido ───
+  if (!isConnected && !isSkipped) {
+    return (
+      <div
+        style={{
+          height: "100vh",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          background: "var(--color-bg-base)",
+          textAlign: "center",
+        }}
+      >
+        <div style={{ maxWidth: 480, width: "100%", padding: 40 }}>
+          <span style={{ fontSize: 64, display: "block", marginBottom: 24 }}>
+            🛍️
+          </span>
+          <h2
+            style={{
+              fontSize: 28,
+              fontWeight: 700,
+              color: "var(--color-text-primary)",
+              marginBottom: 12,
+            }}
+          >
+            Conecta tu tienda de Shopify
+          </h2>
+          <p
+            style={{
+              color: "var(--color-text-muted)",
+              marginBottom: 32,
+              lineHeight: 1.5,
+            }}
+          >
+            Sincroniza tus productos y ventas en tiempo real para desbloquear el
+            poder de la Inteligencia Artificial.
+          </p>
+
+          <div
+            style={{
+              background: "var(--color-bg-card)",
+              padding: 24,
+              borderRadius: 16,
+              border: "1px solid var(--color-border)",
+            }}
+          >
+            <div style={{ display: "flex", gap: "12px", marginBottom: 24 }}>
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  background: "var(--color-bg-surface)",
+                  padding: "12px 16px",
+                  borderRadius: 8,
+                  border: "1px solid var(--color-border)",
+                  flex: 1,
+                }}
+              >
+                <input
+                  type="text"
+                  placeholder="mi-tienda"
+                  value={shopUrl}
+                  onChange={(e) => setShopUrl(e.target.value)}
+                  style={{
+                    background: "transparent",
+                    border: "none",
+                    color: "var(--color-text-primary)",
+                    outline: "none",
+                    width: "100%",
+                  }}
+                />
+                <span
+                  style={{ color: "var(--color-text-muted)", flexShrink: 0 }}
+                >
+                  .myshopify.com
+                </span>
+              </div>
+              <button
+                onClick={handleConnect}
+                style={{
+                  padding: "0 24px",
+                  background:
+                    "linear-gradient(135deg, #95bf47 0%, #5e8e3e 100%)",
+                  color: "#fff",
+                  borderRadius: 8,
+                  fontWeight: 700,
+                  border: "none",
+                  cursor: "pointer",
+                }}
+              >
+                Vincular
+              </button>
+            </div>
+
+            {/* BOTÓN PARA SALTARSE EL PASO */}
+            <button
+              onClick={() => {
+                setIsSkipped(true);
+                setActiveView("excel"); // Los mandamos directo al importador de Excel
+              }}
+              style={{
+                background: "transparent",
+                border: "none",
+                color: "var(--color-text-secondary)",
+                cursor: "pointer",
+                fontSize: 14,
+                textDecoration: "underline",
+                fontWeight: 500,
+              }}
+            >
+              Continuar sin tienda de Shopify
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // ─── EL DASHBOARD PRINCIPAL (Conectado o Modo Manual) ───
   return (
     <div
       style={{
         display: "flex",
         height: "100vh",
         overflow: "hidden",
-        background: "transparent",
+        background: "var(--color-bg-base)",
       }}
     >
       <Sidebar />
@@ -77,152 +211,85 @@ export function ShopifyDashboardPage() {
             padding: "32px",
             flex: 1,
             overflowY: "auto",
+            paddingBottom: "100px",
             display: "flex",
             flexDirection: "column",
             gap: "24px",
           }}
         >
-          {!isConnected ? (
+          {/* BANNER DE ADVERTENCIA (Si omitió la conexión) */}
+          {isSkipped && !isConnected && (
             <div
               style={{
                 display: "flex",
-                flexDirection: "column",
                 alignItems: "center",
-                justifyContent: "center",
-                height: "100%",
-                textAlign: "center",
+                gap: 12,
+                padding: "16px 20px",
+                background: "rgba(255, 171, 0, 0.1)",
+                border: "1px solid rgba(255, 171, 0, 0.3)",
+                borderRadius: 12,
+                color: "#ffab00",
               }}
             >
-              <span style={{ fontSize: 64, marginBottom: 24 }}>🛍️</span>
-              <h2
-                style={{
-                  fontSize: 28,
-                  fontWeight: 700,
-                  color: "var(--color-text-primary)",
-                  marginBottom: 12,
-                }}
-              >
-                Conecta tu tienda de Shopify
-              </h2>
-              <p
-                style={{
-                  color: "var(--color-text-muted)",
-                  maxWidth: 450,
-                  marginBottom: 32,
-                }}
-              >
-                Sincroniza tus productos y ventas en tiempo real.
-              </p>
-
-              <div
-                style={{
-                  display: "flex",
-                  gap: "12px",
-                  alignItems: "center",
-                  background: "var(--color-bg-card)",
-                  padding: "16px",
-                  borderRadius: "16px",
-                  border: "1px solid var(--color-border)",
-                }}
-              >
-                <div
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    background: "var(--color-bg-surface)",
-                    padding: "12px 16px",
-                    borderRadius: "8px",
-                    border: "1px solid var(--color-border)",
-                  }}
-                >
-                  <input
-                    type="text"
-                    placeholder="mi-tienda"
-                    value={shopUrl}
-                    onChange={(e) => setShopUrl(e.target.value)}
-                    style={{
-                      background: "transparent",
-                      border: "none",
-                      color: "var(--color-text-primary)",
-                      outline: "none",
-                      width: "150px",
-                    }}
-                  />
-                  <span style={{ color: "var(--color-text-muted)" }}>
-                    .myshopify.com
-                  </span>
-                </div>
-                <button
-                  onClick={handleConnect}
-                  style={{
-                    padding: "14px 24px",
-                    background:
-                      "linear-gradient(135deg, #95bf47 0%, #5e8e3e 100%)",
-                    color: "#fff",
-                    borderRadius: "8px",
-                    fontWeight: 700,
-                    border: "none",
-                    cursor: "pointer",
-                  }}
-                >
-                  Vincular
-                </button>
-              </div>
+              <AlertCircle size={20} style={{ flexShrink: 0 }} />
+              <span style={{ fontSize: 14, fontWeight: 500, lineHeight: 1.5 }}>
+                Estás en modo manual. Las analíticas automáticas de Shopify no
+                están disponibles. Dirígete a la pestaña "Excel Import" para
+                subir tus datos manualmente.
+              </span>
             </div>
-          ) : (
-            <>
-              <div
-                style={{
-                  display: "flex",
-                  justifyContent: "space-between",
-                  alignItems: "center",
-                  marginBottom: 8,
-                }}
-              >
-                <h1
-                  style={{
-                    fontSize: 24,
-                    fontWeight: 700,
-                    color: "var(--color-text-primary)",
-                  }}
-                >
-                  Shopify Intelligence
-                </h1>
-
-                <div
-                  style={{
-                    display: "flex",
-                    gap: 8,
-                    background: "var(--color-bg-card)",
-                    padding: 4,
-                    borderRadius: 12,
-                    border: "1px solid var(--color-border)",
-                  }}
-                >
-                  <button
-                    onClick={() => setActiveView("overview")}
-                    style={tabStyle(activeView === "overview")}
-                  >
-                    <LayoutDashboard size={16} /> Resumen
-                  </button>
-                  <button
-                    onClick={() => setActiveView("products")}
-                    style={tabStyle(activeView === "products")}
-                  >
-                    <Package size={16} /> Productos
-                  </button>
-                  <button
-                    onClick={() => setActiveView("orders")}
-                    style={tabStyle(activeView === "orders")}
-                  >
-                    <ShoppingCart size={16} /> Pedidos
-                  </button>
-                </div>
-              </div>
-
-              {renderView()}
-            </>
           )}
+
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              marginBottom: 8,
+            }}
+          >
+            <h1
+              style={{
+                fontSize: 24,
+                fontWeight: 700,
+                color: "var(--color-text-primary)",
+              }}
+            >
+              Shopify Intelligence
+            </h1>
+
+            <div
+              style={{
+                display: "flex",
+                gap: 8,
+                background: "var(--color-bg-card)",
+                padding: 4,
+                borderRadius: 12,
+                border: "1px solid var(--color-border)",
+              }}
+            >
+              <button
+                onClick={() => setActiveView("overview")}
+                style={tabStyle(activeView === "overview")}
+              >
+                <LayoutDashboard size={16} /> Resumen
+              </button>
+              <button
+                onClick={() => setActiveView("products")}
+                style={tabStyle(activeView === "products")}
+              >
+                <Package size={16} /> Productos
+              </button>
+              <button
+                onClick={() => setActiveView("orders")}
+                style={tabStyle(activeView === "orders")}
+              >
+                <ShoppingCart size={16} /> Pedidos
+              </button>
+            </div>
+          </div>
+
+          {renderView()}
         </main>
       </div>
     </div>

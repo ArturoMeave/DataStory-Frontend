@@ -223,7 +223,7 @@ export function SettingsPage() {
         display: "flex",
         height: "100vh",
         overflow: "hidden",
-        background: "transparent",
+        background: "var(--color-bg-base)",
       }}
     >
       <Sidebar />
@@ -590,6 +590,7 @@ export function SettingsPage() {
         </div>
       )}
 
+      {/* CONTENEDOR DERECHO QUE AHORA FUNCIONA COMO ACORDEÓN */}
       <div
         style={{
           flex: 1,
@@ -622,7 +623,17 @@ export function SettingsPage() {
           </h1>
         </header>
 
-        <main style={{ padding: "28px 32px", flex: 1 }}>
+        {/* ¡AQUÍ ESTÁ LA MAGIA! 
+          Hemos añadido overflowY: "auto" y paddingBottom al <main> 
+        */}
+        <main
+          style={{
+            padding: "28px 32px",
+            flex: 1,
+            overflowY: "auto",
+            paddingBottom: "100px",
+          }}
+        >
           <div style={{ maxWidth: 800, margin: "0 auto" }}>
             {/* Tabs */}
             <div

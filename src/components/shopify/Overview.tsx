@@ -1,6 +1,14 @@
 import { useState, useEffect } from "react";
-import { DollarSign, ShoppingCart, Package, TrendingUp } from "lucide-react";
+import {
+  DollarSign,
+  ShoppingCart,
+  Package,
+  TrendingUp,
+  AlertCircle,
+} from "lucide-react";
 import { useAuthStore } from "../../stores/authStore";
+import { useShopifyStore } from "../../stores/shopifyStore";
+import { useDataStore } from "../../stores/dataStore";
 import {
   LineChart,
   Line,
@@ -11,14 +19,27 @@ import {
   ResponsiveContainer,
 } from "recharts";
 
+// Componentes del Dashboard Universal
+import { RevenueLineChart } from "../charts/RevenueLineChart";
+import { ExpenseBarChart } from "../charts/ExpenseBarChart";
+import {
+  formatCurrency,
+  totalRevenue,
+  totalExpenses,
+  netProfit,
+} from "../../utils/dataAggregator";
+
 export function Overview() {
   const { token } = useAuthStore();
+  const { isConnected, isSkipped } = useShopifyStore(); // Saber en qué modo estamos
+  const { rows, setRows } = useDataStore(); // Los datos del Excel
+
   const [storeData, setStoreData] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  // 1. EL MENSAJERO VUELVE A LA ACCIÓN
+  // 1. EL MENSAJERO DE SHOPIFY (Solo trabaja si hay tienda conectada)
   useEffect(() => {
-    if (token) {
+    if (isConnected && token) {
       setIsLoading(true);
       fetch("http://localhost:3001/api/auth/shopify/data", {
         headers: { Authorization: `Bearer ${token}` },
@@ -33,22 +54,237 @@ export function Overview() {
           setIsLoading(false);
         });
     }
-  }, [token]);
+  }, [token, isConnected]);
 
-  // 2. PREPARAMOS LOS DATOS PARA LA GRÁFICA
-  // Convertimos las fechas raras de Shopify en horas fáciles de leer
-  const chartData =
-    storeData?.recentOrders
-      ?.map((order: any) => ({
-        name: new Date(order.date).toLocaleTimeString("es-ES", {
-          hour: "2-digit",
-          minute: "2-digit",
-        }),
-        ventas: order.total,
-      }))
-      .reverse() || []; // Le damos la vuelta para que el más viejo salga a la izquierda y el más nuevo a la derecha
+  useEffect(() => {
+    if (isSkipped && !isConnected && token) {
+      fetch("http://localhost:3001/api/workspace/data", {
+        headers: { Authorization: `Bearer ${token}` },
+      })
+        .then((res) => res.json())
+        .then((data) => {
+          if (data.rows && data.rows.length > 0) {
+            setRows(data.rows); // Guardamos los datos en pantalla
+          }
+        })
+        .catch((error) => console.error("Error recuperando Excel:", error));
+    }
+  }, [isSkipped, isConnected, token, setRows]);
 
-  // 3. EL PARACAÍDAS (Si está cargando o hay error)
+  // =======================================================================
+  // 🟢 MODO 1: DASHBOARD UNIVERSAL (Viene del Excel)
+  // =======================================================================
+  if (isSkipped && !isConnected) {
+    if (rows.length === 0) {
+      return (
+        <div
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            justifyContent: "center",
+            padding: "80px 20px",
+            textAlign: "center",
+            background: "var(--color-bg-card)",
+            borderRadius: "var(--radius-xl)",
+            border: "1px dashed var(--color-border)",
+            animation: "fadeSlideUp 0.4s ease-out",
+          }}
+        >
+          <AlertCircle
+            size={48}
+            color="var(--color-text-muted)"
+            style={{ marginBottom: 16 }}
+          />
+          <h3
+            style={{
+              fontSize: 20,
+              fontWeight: 600,
+              color: "var(--color-text-primary)",
+              marginBottom: 8,
+            }}
+          >
+            No hay datos en memoria
+          </h3>
+          <p style={{ color: "var(--color-text-secondary)", maxWidth: 400 }}>
+            Dirígete a la pestaña "Importar Excel" y sube tu archivo CSV para
+            que nuestro motor genere tu Dashboard automáticamente.
+          </p>
+        </div>
+      );
+    }
+
+    const rev = totalRevenue(rows);
+    const exp = totalExpenses(rows);
+    const profit = netProfit(rows);
+
+    return (
+      <div
+        style={{
+          display: "flex",
+          flexDirection: "column",
+          gap: "24px",
+          animation: "fadeSlideUp 0.4s ease-out",
+        }}
+      >
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(3, 1fr)",
+            gap: "24px",
+          }}
+        >
+          <div
+            style={{
+              background: "var(--color-bg-card)",
+              padding: 24,
+              borderRadius: 16,
+              border: "1px solid var(--color-border)",
+            }}
+          >
+            <p
+              style={{
+                fontSize: 13,
+                fontWeight: 600,
+                color: "var(--color-text-muted)",
+                marginBottom: 8,
+                textTransform: "uppercase",
+              }}
+            >
+              Ingresos Totales
+            </p>
+            <h3
+              style={{
+                fontSize: 32,
+                fontWeight: 800,
+                color: "var(--color-text-primary)",
+              }}
+            >
+              {formatCurrency(rev)}
+            </h3>
+          </div>
+          <div
+            style={{
+              background: "var(--color-bg-card)",
+              padding: 24,
+              borderRadius: 16,
+              border: "1px solid var(--color-border)",
+            }}
+          >
+            <p
+              style={{
+                fontSize: 13,
+                fontWeight: 600,
+                color: "var(--color-text-muted)",
+                marginBottom: 8,
+                textTransform: "uppercase",
+              }}
+            >
+              Gastos Totales
+            </p>
+            <h3
+              style={{
+                fontSize: 32,
+                fontWeight: 800,
+                color: "var(--color-text-primary)",
+              }}
+            >
+              {formatCurrency(exp)}
+            </h3>
+          </div>
+          <div
+            style={{
+              background: "var(--color-bg-card)",
+              padding: 24,
+              borderRadius: 16,
+              border: "1px solid var(--color-border)",
+            }}
+          >
+            <p
+              style={{
+                fontSize: 13,
+                fontWeight: 600,
+                color: "var(--color-text-muted)",
+                marginBottom: 8,
+                textTransform: "uppercase",
+              }}
+            >
+              Beneficio Neto
+            </p>
+            <h3
+              style={{
+                fontSize: 32,
+                fontWeight: 800,
+                color:
+                  profit >= 0 ? "var(--color-success)" : "var(--color-danger)",
+              }}
+            >
+              {profit > 0 ? "+" : ""}
+              {formatCurrency(profit)}
+            </h3>
+          </div>
+        </div>
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "1fr 1fr",
+            gap: "24px",
+            minHeight: 400,
+          }}
+        >
+          <div
+            style={{
+              background: "var(--color-bg-card)",
+              borderRadius: 16,
+              border: "1px solid var(--color-border)",
+              padding: 16,
+            }}
+          >
+            <h3
+              style={{
+                fontSize: 16,
+                fontWeight: 600,
+                marginBottom: 16,
+                paddingLeft: 8,
+              }}
+            >
+              Evolución de Ingresos
+            </h3>
+            <div style={{ height: 300 }}>
+              <RevenueLineChart />
+            </div>
+          </div>
+          <div
+            style={{
+              background: "var(--color-bg-card)",
+              borderRadius: 16,
+              border: "1px solid var(--color-border)",
+              padding: 16,
+            }}
+          >
+            <h3
+              style={{
+                fontSize: 16,
+                fontWeight: 600,
+                marginBottom: 16,
+                paddingLeft: 8,
+              }}
+            >
+              Desglose de Gastos
+            </h3>
+            <div style={{ height: 300 }}>
+              <ExpenseBarChart />
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // =======================================================================
+  // 🛍️ MODO 2: DASHBOARD DE SHOPIFY (El tuyo original)
+  // =======================================================================
+
   if (isLoading) {
     return (
       <div
@@ -80,10 +316,26 @@ export function Overview() {
     );
   }
 
-  // 4. EL ESCENARIO FINAL (Tarjetas + Gráfica)
+  const chartData =
+    storeData?.recentOrders
+      ?.map((order: any) => ({
+        name: new Date(order.date).toLocaleTimeString("es-ES", {
+          hour: "2-digit",
+          minute: "2-digit",
+        }),
+        ventas: order.total,
+      }))
+      .reverse() || [];
+
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
-      {/* --- LAS 3 TARJETAS DE MÉTRICAS --- */}
+    <div
+      style={{
+        display: "flex",
+        flexDirection: "column",
+        gap: "24px",
+        animation: "fadeSlideUp 0.4s ease-out",
+      }}
+    >
       <div
         style={{
           display: "grid",
@@ -91,7 +343,6 @@ export function Overview() {
           gap: "24px",
         }}
       >
-        {/* Tarjeta 1: Ingresos */}
         <div
           style={{
             background: "var(--color-bg-card)",
@@ -133,7 +384,6 @@ export function Overview() {
           </p>
         </div>
 
-        {/* Tarjeta 2: Pedidos */}
         <div
           style={{
             background: "var(--color-bg-card)",
@@ -175,7 +425,6 @@ export function Overview() {
           </p>
         </div>
 
-        {/* Tarjeta 3: Productos */}
         <div
           style={{
             background: "var(--color-bg-card)",
@@ -218,7 +467,6 @@ export function Overview() {
         </div>
       </div>
 
-      {/* --- LA GRÁFICA DE TENDENCIAS (RECHARTS) --- */}
       <div
         style={{
           background: "var(--color-bg-card)",
@@ -244,10 +492,9 @@ export function Overview() {
               margin: 0,
             }}
           >
-            Tendencia de Ventas (Últimos Pedidos)
+            Tendencia de Ventas
           </h3>
         </div>
-
         <div style={{ height: 300, width: "100%" }}>
           <ResponsiveContainer width="100%" height="100%">
             <LineChart data={chartData}>

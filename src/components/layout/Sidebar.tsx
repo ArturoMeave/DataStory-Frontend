@@ -11,6 +11,8 @@ import {
   ChevronLeft,
   ChevronRight,
   BarChart2,
+  FileText,
+  Link as LinkIcon,
 } from "lucide-react";
 import { useAuthStore } from "../../stores/authStore";
 import { useShopifyStore } from "../../stores/shopifyStore";
@@ -20,19 +22,54 @@ export function Sidebar() {
   const navigate = useNavigate();
   const location = useLocation();
   const { logout } = useAuthStore();
-  const { activeView, setActiveView } = useShopifyStore();
+  const { activeView, setActiveView, isConnected, setIsSkipped } =
+    useShopifyStore();
   const [isOpen, setIsOpen] = useState(true);
 
-  const shopifyItems = [
-    { id: "overview", label: "Resumen", icon: LayoutDashboard },
-    { id: "products", label: "Productos", icon: Package },
-    { id: "orders", label: "Pedidos", icon: ShoppingCart },
-    { id: "customers", label: "Clientes", icon: Users },
-    { id: "analytics", label: "Analytics", icon: BarChart3 },
-    { id: "excel", label: "Excel Import", icon: FileSpreadsheet },
+  // 1. DEFINIMOS TODOS LOS POSIBLES ÍTEMS
+  const allItems = [
+    // Siempre visibles (Modo Universal)
+    {
+      id: "overview",
+      label: "Resumen Global",
+      icon: LayoutDashboard,
+      shopifyOnly: false,
+    },
+    {
+      id: "excel",
+      label: "Importar Excel",
+      icon: FileSpreadsheet,
+      shopifyOnly: false,
+    },
+    {
+      id: "ai-docs",
+      label: "Analista PDF",
+      icon: FileText,
+      shopifyOnly: false,
+    },
+
+    // Visibles solo si HAY tienda conectada
+    { id: "products", label: "Productos", icon: Package, shopifyOnly: true },
+    { id: "orders", label: "Pedidos", icon: ShoppingCart, shopifyOnly: true },
+    { id: "customers", label: "Clientes", icon: Users, shopifyOnly: true },
+    {
+      id: "analytics",
+      label: "Shopify Analytics",
+      icon: BarChart3,
+      shopifyOnly: true,
+    },
   ];
 
-  const getBtnStyle = (isActive: boolean) => ({
+  // 2. FILTRAMOS SEGÚN EL ESTADO DE CONEXIÓN
+  const visibleItems = allItems.filter((item) =>
+    isConnected ? true : !item.shopifyOnly,
+  );
+
+  const getBtnStyle = (
+    isActive: boolean,
+    isDanger = false,
+    isSpecial = false,
+  ) => ({
     display: "flex",
     alignItems: "center",
     justifyContent: isOpen ? "flex-start" : "center",
@@ -42,9 +79,19 @@ export function Sidebar() {
     margin: isOpen ? "0 0 4px 0" : "0 auto 8px auto",
     padding: isOpen ? "0 16px" : "0",
     borderRadius: 12,
-    background: isActive ? "var(--color-accent)" : "transparent",
-    border: "none",
-    color: isActive ? "white" : "var(--color-text-secondary)",
+    background: isSpecial
+      ? "rgba(149, 191, 71, 0.15)" // Verde Shopify suave
+      : isActive
+        ? "var(--color-accent)"
+        : "transparent",
+    border: isSpecial ? "1px solid rgba(149, 191, 71, 0.3)" : "none",
+    color: isSpecial
+      ? "#95bf47"
+      : isDanger
+        ? "#ff4d4d"
+        : isActive
+          ? "white"
+          : "var(--color-text-secondary)",
     cursor: "pointer",
     transition: "all 0.2s cubic-bezier(0.4, 0, 0.2, 1)",
     overflow: "hidden",
@@ -67,12 +114,13 @@ export function Sidebar() {
         overflow: "hidden",
       }}
     >
+      {/* HEADER LOGO */}
       <div
         style={{
           display: "flex",
           alignItems: "center",
           justifyContent: isOpen ? "space-between" : "center",
-          marginBottom: isOpen ? 32 : 16,
+          marginBottom: 32,
           width: "100%",
         }}
       >
@@ -98,7 +146,6 @@ export function Sidebar() {
           >
             <BarChart2 size={20} color="white" />
           </div>
-
           {isOpen && (
             <span
               style={{
@@ -106,14 +153,12 @@ export function Sidebar() {
                 fontWeight: 800,
                 color: "var(--color-text-primary)",
                 letterSpacing: -0.5,
-                whiteSpace: "nowrap",
               }}
             >
               DataStory
             </span>
           )}
         </div>
-
         {isOpen && (
           <button
             onClick={() => setIsOpen(false)}
@@ -124,10 +169,6 @@ export function Sidebar() {
               cursor: "pointer",
               padding: 6,
               color: "var(--color-text-secondary)",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              flexShrink: 0,
             }}
           >
             <ChevronLeft size={14} />
@@ -147,34 +188,27 @@ export function Sidebar() {
             marginBottom: 20,
             cursor: "pointer",
             padding: 6,
-            display: "flex",
           }}
         >
           <ChevronRight size={18} />
         </button>
       )}
 
-      {/* Aquí también quitamos el margen de 4px del scroll cuando está cerrado */}
+      {/* MENÚ DINÁMICO */}
       <div
-        style={{
-          flex: 1,
-          overflowY: "auto",
-          overflowX: "hidden",
-          paddingRight: isOpen ? 4 : 0,
-        }}
+        style={{ flex: 1, overflowY: "auto", paddingRight: 4 }}
         className="custom-scrollbar"
       >
         <nav>
-          {shopifyItems.map((item) => {
-            const isAtShopify = location.pathname === "/shopify";
-            const isActive = isAtShopify && activeView === item.id;
-
+          {visibleItems.map((item) => {
+            const isActive =
+              location.pathname === "/shopify" && activeView === item.id;
             return (
               <button
                 key={item.id}
                 onClick={() => {
                   setActiveView(item.id);
-                  if (!isAtShopify) navigate("/shopify");
+                  navigate("/shopify");
                 }}
                 style={getBtnStyle(isActive)}
                 title={item.label}
@@ -194,6 +228,35 @@ export function Sidebar() {
           })}
         </nav>
 
+        {/* BOTÓN CONECTAR TIENDA (Solo aparece si NO está conectado) */}
+        {!isConnected && (
+          <>
+            <div
+              style={{
+                height: "1px",
+                background: "var(--color-border)",
+                margin: "16px 0",
+                opacity: 0.4,
+              }}
+            />
+            <button
+              onClick={() => {
+                setIsSkipped(false); // Al ponerlo en false, el "Setup Gate" vuelve a aparecer
+                navigate("/shopify");
+              }}
+              style={getBtnStyle(false, false, true)}
+              title="Vincular Shopify"
+            >
+              <LinkIcon size={20} style={{ flexShrink: 0 }} />
+              {isOpen && (
+                <span style={{ fontWeight: 700, fontSize: 13 }}>
+                  Vincular Shopify
+                </span>
+              )}
+            </button>
+          </>
+        )}
+
         <div
           style={{
             height: "1px",
@@ -203,6 +266,7 @@ export function Sidebar() {
           }}
         />
 
+        {/* SECCIÓN SISTEMA */}
         <nav>
           <button
             onClick={() => navigate("/team")}
@@ -216,7 +280,6 @@ export function Sidebar() {
               </span>
             )}
           </button>
-
           <button
             onClick={() => navigate("/settings")}
             style={getBtnStyle(location.pathname === "/settings")}
@@ -230,31 +293,11 @@ export function Sidebar() {
         </nav>
       </div>
 
+      {/* CERRAR SESIÓN */}
       <div style={{ marginTop: "auto", paddingTop: 20 }}>
-        <button
-          onClick={logout}
-          style={{
-            display: "flex",
-            alignItems: "center",
-            justifyContent: isOpen ? "flex-start" : "center",
-            gap: 12,
-            width: isOpen ? "100%" : "48px",
-            height: "48px",
-            margin: isOpen ? "0" : "0 auto",
-            padding: isOpen ? "0 16px" : "0",
-            color: "#ff4d4d",
-            background: "rgba(255, 77, 77, 0.05)",
-            borderRadius: 12,
-            border: "none",
-            cursor: "pointer",
-            fontSize: 14,
-            fontWeight: 700,
-            overflow: "hidden",
-            whiteSpace: "nowrap",
-          }}
-        >
+        <button onClick={logout} style={getBtnStyle(false, true)}>
           <LogOut size={20} style={{ flexShrink: 0 }} />
-          {isOpen && <span>Cerrar Sesión</span>}
+          {isOpen && <span style={{ fontWeight: 700 }}>Cerrar Sesión</span>}
         </button>
       </div>
     </aside>
