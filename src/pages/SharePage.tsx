@@ -1,17 +1,14 @@
 import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
-import { Navbar } from "../components/layout/Navbar";
 import { ShareBanner } from "../components/layout/ShareBanner";
 import { useDataStore } from "../stores/dataStore";
 import { getSharedSnapshot } from "../services/api.service";
-import { detectAnomalies } from "../utils/anomalyDetector";
 import { AISummary } from "../components/dashboard/AISummary";
 import { Loader2 } from "lucide-react";
 
 export function SharePage() {
   const { id } = useParams<{ id: string }>();
-  const { setIsReadOnly, setRows, setAnomalies, setAiSummary, resetData } =
-    useDataStore();
+  const { setIsReadOnly, setRows, setAiSummary, resetData } = useDataStore();
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -25,8 +22,6 @@ export function SharePage() {
         const data = await getSharedSnapshot(id);
 
         setRows(data.recentPeriods || []);
-        setAnomalies(detectAnomalies(data.recentPeriods || []));
-
         if (data.aiSummary) setAiSummary(data.aiSummary);
       } catch (err) {
         console.error(err);
@@ -42,7 +37,7 @@ export function SharePage() {
       setIsReadOnly(false);
       resetData();
     };
-  }, [id, setIsReadOnly, setRows, setAnomalies, setAiSummary, resetData]);
+  }, [id, setIsReadOnly, setRows, setAiSummary, resetData]);
 
   return (
     <div
@@ -53,7 +48,6 @@ export function SharePage() {
         flexDirection: "column",
       }}
     >
-      <Navbar />
       <ShareBanner />
       <main
         style={{
@@ -117,11 +111,9 @@ export function SharePage() {
               gap: 24,
             }}
           >
-            {/* AQUÍ METIMOS LOS GRÁFICOS */}
             <div
               style={{ display: "flex", flexDirection: "column", gap: 24 }}
             ></div>
-
             <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
               <AISummary />
             </div>

@@ -3,7 +3,6 @@ import { Search, Share2, Download, Bell } from "lucide-react";
 import { Sidebar } from "../components/layout/Sidebar";
 import { FileDropzone } from "../components/dashboard/FileDropzone";
 import { AISummary } from "../components/dashboard/AISummary";
-import { AnomalyAlert } from "../components/dashboard/AnomalyAlert";
 import { TaskPanel } from "../components/dashboard/TaskPanel";
 import { ChatPanel } from "../components/dashboard/ChatPanel";
 import { ShareModal } from "../components/dashboard/ShareModal";
@@ -21,12 +20,10 @@ import {
 } from "../utils/dataAggregator";
 import { ExpenseBarChart } from "../components/charts/ExpenseBarChart";
 import { RevenueLineChart } from "../components/charts/RevenueLineChart";
-import { detectAnomalies } from "../utils/anomalyDetector";
 import { generateSummary, generateTasks } from "../services/api.service";
 import { exportPDF } from "../services/pdf.service";
 import type { Task } from "../types";
 
-// ── COMPONENTE KPI FUTURISTA ──
 function CompactKPICard({
   label,
   value,
@@ -165,21 +162,12 @@ function CompactKPICard({
 }
 
 export function DashboardPage() {
-  const {
-    rows,
-    goal,
-    aiSummary,
-    setAnomalies,
-    setAiSummary,
-    setIsLoadingAI,
-    setTasks,
-  } = useDataStore();
+  const { rows, goal, aiSummary, setAiSummary, setIsLoadingAI, setTasks } =
+    useDataStore();
   const { user } = useAuthStore();
-
   const [showShare, setShowShare] = useState(false);
   const [showStripe, setShowStripe] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
-
   const [activeChart, setActiveChart] = useState<"revenue" | "expenses">(
     "revenue",
   );
@@ -190,11 +178,8 @@ export function DashboardPage() {
   const exp = totalExpenses(rows);
   const profit = netProfit(rows);
 
-  // Lógica completa de IA restaurada
   useEffect(() => {
     if (!hasData) return;
-    setAnomalies(detectAnomalies(rows));
-
     const fetchAI = async () => {
       setIsLoadingAI(true);
       const summary = buildDataSummary(rows, goal?.amount);
@@ -226,7 +211,6 @@ export function DashboardPage() {
     fetchAI();
   }, [rows, goal]);
 
-  // Lógica completa de PDF restaurada
   const handleExportPDF = async () => {
     if (isExporting) return;
     setIsExporting(true);
@@ -254,7 +238,7 @@ export function DashboardPage() {
     fontWeight: isActive ? 700 : 500,
     cursor: "pointer",
     boxShadow: isActive ? "0 0 15px rgba(139,92,246,0.3)" : "none",
-    textTransform: "uppercase",
+    textTransform: "uppercase" as const,
     letterSpacing: "0.05em",
     transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
     outline: "none",
@@ -272,7 +256,7 @@ export function DashboardPage() {
       <Sidebar />
       <div
         style={{
-          marginLeft: 260,
+          marginLeft: 80,
           flex: 1,
           display: "flex",
           flexDirection: "column",
@@ -311,7 +295,6 @@ export function DashboardPage() {
                   Aquí tienes el pulso energético de tu empresa hoy.
                 </p>
               </div>
-
               <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
                 <div
                   style={{
@@ -450,8 +433,6 @@ export function DashboardPage() {
                   delay={0.2}
                 />
               </div>
-
-              <AnomalyAlert />
 
               <div
                 style={{

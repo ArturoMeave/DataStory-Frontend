@@ -2,29 +2,27 @@ import { useNavigate, useLocation } from "react-router-dom";
 import {
   LayoutDashboard,
   Users,
-  FileText,
   Settings,
   LogOut,
-  ShoppingBag,
   Package,
   ShoppingCart,
   BarChart3,
   FileSpreadsheet,
   ChevronLeft,
   ChevronRight,
+  BarChart2,
 } from "lucide-react";
 import { useAuthStore } from "../../stores/authStore";
-import { useShopifyStore } from "../../stores/shopifyStore"; // Importamos el cerebro de Shopify
+import { useShopifyStore } from "../../stores/shopifyStore";
 import { useState } from "react";
 
 export function Sidebar() {
   const navigate = useNavigate();
   const location = useLocation();
   const { logout } = useAuthStore();
-  const { activeView, setActiveView } = useShopifyStore(); // Controlamos la vista activa
-  const [isOpen, setIsOpen] = useState(true); // Para el toggle colapsable
+  const { activeView, setActiveView } = useShopifyStore();
+  const [isOpen, setIsOpen] = useState(true);
 
-  // 1. LÓGICA DE NAVEGACIÓN: Definimos las sub-secciones de Shopify
   const shopifyItems = [
     { id: "overview", label: "Resumen", icon: LayoutDashboard },
     { id: "products", label: "Productos", icon: Package },
@@ -34,102 +32,138 @@ export function Sidebar() {
     { id: "excel", label: "Excel Import", icon: FileSpreadsheet },
   ];
 
-  // 2. LÓGICA DE BOTÓN ACTIVO: Función para no repetir código de estilos
   const getBtnStyle = (isActive: boolean) => ({
     display: "flex",
     alignItems: "center",
+    justifyContent: isOpen ? "flex-start" : "center",
     gap: 12,
-    width: "100%",
-    padding: "12px 16px",
-    borderRadius: 100,
+    width: isOpen ? "100%" : "48px",
+    height: "48px",
+    margin: isOpen ? "0 0 4px 0" : "0 auto 8px auto",
+    padding: isOpen ? "0 16px" : "0",
+    borderRadius: 12,
     background: isActive ? "var(--color-accent)" : "transparent",
     border: "none",
     color: isActive ? "white" : "var(--color-text-secondary)",
     cursor: "pointer",
-    textAlign: "left" as const,
-    transition: "all 0.2s ease",
-    marginBottom: 4,
+    transition: "all 0.2s cubic-bezier(0.4, 0, 0.2, 1)",
+    overflow: "hidden",
+    whiteSpace: "nowrap" as const,
   });
 
   return (
     <aside
       style={{
         width: isOpen ? 260 : 80,
-        minHeight: "100vh",
-        position: "fixed",
-        left: 0,
-        top: 0,
+        height: "100vh",
+        flexShrink: 0,
         background: "var(--color-bg-surface)",
         borderRight: "1px solid var(--color-border)",
         padding: "24px 16px",
-        zIndex: 30,
+        zIndex: 100,
         transition: "width 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
         display: "flex",
         flexDirection: "column",
+        overflow: "hidden",
       }}
     >
-      {/* HEADER Y BOTÓN COLAPSAR */}
       <div
         style={{
           display: "flex",
           alignItems: "center",
           justifyContent: isOpen ? "space-between" : "center",
-          marginBottom: 40,
+          marginBottom: isOpen ? 32 : 16,
+          width: "100%",
         }}
       >
-        {isOpen && (
-          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-            <div
-              style={{
-                width: 32,
-                height: 32,
-                borderRadius: 8,
-                background: "var(--color-accent)",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-              }}
-            >
-              <span style={{ color: "white", fontWeight: "bold" }}>X</span>
-            </div>
-            <span
-              style={{ fontSize: 18, fontWeight: 700, letterSpacing: -0.5 }}
-            >
-              Outrunix
-            </span>
-          </div>
-        )}
-        <button
-          onClick={() => setIsOpen(!isOpen)}
+        <div
           style={{
-            background: "var(--color-bg-card)",
-            border: "1px solid var(--color-border)",
-            borderRadius: 8,
-            cursor: "pointer",
-            padding: 4,
-            color: "var(--color-text-secondary)",
+            display: "flex",
+            alignItems: "center",
+            gap: 12,
+            overflow: "hidden",
           }}
         >
-          {isOpen ? <ChevronLeft size={16} /> : <ChevronRight size={16} />}
-        </button>
-      </div>
-
-      {/* SECCIÓN SHOPIFY ANALYTICS */}
-      <div style={{ marginBottom: 24 }}>
-        {isOpen && (
-          <p
+          <div
             style={{
-              fontSize: 10,
-              fontWeight: 700,
-              color: "var(--color-text-muted)",
-              letterSpacing: 1.5,
-              paddingLeft: 16,
-              marginBottom: 12,
+              minWidth: 36,
+              height: 36,
+              borderRadius: 10,
+              background: "var(--color-accent)",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              flexShrink: 0,
             }}
           >
-            SHOPIFY HUB
-          </p>
+            <BarChart2 size={20} color="white" />
+          </div>
+
+          {isOpen && (
+            <span
+              style={{
+                fontSize: 20,
+                fontWeight: 800,
+                color: "var(--color-text-primary)",
+                letterSpacing: -0.5,
+                whiteSpace: "nowrap",
+              }}
+            >
+              DataStory
+            </span>
+          )}
+        </div>
+
+        {isOpen && (
+          <button
+            onClick={() => setIsOpen(false)}
+            style={{
+              background: "var(--color-bg-card)",
+              border: "1px solid var(--color-border)",
+              borderRadius: 6,
+              cursor: "pointer",
+              padding: 6,
+              color: "var(--color-text-secondary)",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              flexShrink: 0,
+            }}
+          >
+            <ChevronLeft size={14} />
+          </button>
         )}
+      </div>
+
+      {!isOpen && (
+        <button
+          onClick={() => setIsOpen(true)}
+          style={{
+            alignSelf: "center",
+            background: "transparent",
+            border: "1px solid var(--color-border)",
+            borderRadius: 8,
+            color: "var(--color-text-muted)",
+            marginBottom: 20,
+            cursor: "pointer",
+            padding: 6,
+            display: "flex",
+          }}
+        >
+          <ChevronRight size={18} />
+        </button>
+      )}
+
+      {/* Aquí también quitamos el margen de 4px del scroll cuando está cerrado */}
+      <div
+        style={{
+          flex: 1,
+          overflowY: "auto",
+          overflowX: "hidden",
+          paddingRight: isOpen ? 4 : 0,
+        }}
+        className="custom-scrollbar"
+      >
         <nav>
           {shopifyItems.map((item) => {
             const isAtShopify = location.pathname === "/shopify";
@@ -145,9 +179,13 @@ export function Sidebar() {
                 style={getBtnStyle(isActive)}
                 title={item.label}
               >
-                <item.icon size={18} strokeWidth={isActive ? 2.5 : 2} />
+                <item.icon
+                  size={20}
+                  strokeWidth={isActive ? 2.5 : 2}
+                  style={{ flexShrink: 0 }}
+                />
                 {isOpen && (
-                  <span style={{ fontWeight: 500, fontSize: 14 }}>
+                  <span style={{ fontWeight: 600, fontSize: 14 }}>
                     {item.label}
                   </span>
                 )}
@@ -155,67 +193,67 @@ export function Sidebar() {
             );
           })}
         </nav>
-      </div>
 
-      {/* SECCIÓN SISTEMA CORE (Team & Settings) */}
-      <div style={{ marginTop: "auto", paddingBottom: 80 }}>
-        {isOpen && (
-          <p
-            style={{
-              fontSize: 10,
-              fontWeight: 700,
-              color: "var(--color-text-muted)",
-              letterSpacing: 1.5,
-              paddingLeft: 16,
-              marginBottom: 12,
-            }}
+        <div
+          style={{
+            height: "1px",
+            background: "var(--color-border)",
+            margin: "20px 0",
+            opacity: 0.6,
+          }}
+        />
+
+        <nav>
+          <button
+            onClick={() => navigate("/team")}
+            style={getBtnStyle(location.pathname === "/team")}
+            title="Team"
           >
-            SISTEMA
-          </p>
-        )}
+            <Users size={20} style={{ flexShrink: 0 }} />
+            {isOpen && (
+              <span style={{ fontWeight: 600, fontSize: 14 }}>
+                Team Reports
+              </span>
+            )}
+          </button>
 
-        <button
-          onClick={() => navigate("/team")}
-          style={getBtnStyle(location.pathname === "/team")}
-          title="Team"
-        >
-          <Users size={18} />
-          {isOpen && (
-            <span style={{ fontWeight: 500, fontSize: 14 }}>Team Reports</span>
-          )}
-        </button>
-
-        <button
-          onClick={() => navigate("/settings")}
-          style={getBtnStyle(location.pathname === "/settings")}
-          title="Settings"
-        >
-          <Settings size={18} />
-          {isOpen && (
-            <span style={{ fontWeight: 500, fontSize: 14 }}>Settings</span>
-          )}
-        </button>
+          <button
+            onClick={() => navigate("/settings")}
+            style={getBtnStyle(location.pathname === "/settings")}
+            title="Settings"
+          >
+            <Settings size={20} style={{ flexShrink: 0 }} />
+            {isOpen && (
+              <span style={{ fontWeight: 600, fontSize: 14 }}>Settings</span>
+            )}
+          </button>
+        </nav>
       </div>
 
-      {/* BOTÓN CERRAR SESIÓN */}
-      <div style={{ position: "absolute", bottom: 24, left: 16, right: 16 }}>
+      <div style={{ marginTop: "auto", paddingTop: 20 }}>
         <button
           onClick={logout}
           style={{
             display: "flex",
             alignItems: "center",
+            justifyContent: isOpen ? "flex-start" : "center",
             gap: 12,
-            width: "100%",
-            padding: "12px 16px",
-            color: "var(--color-danger)",
-            background: "transparent",
+            width: isOpen ? "100%" : "48px",
+            height: "48px",
+            margin: isOpen ? "0" : "0 auto",
+            padding: isOpen ? "0 16px" : "0",
+            color: "#ff4d4d",
+            background: "rgba(255, 77, 77, 0.05)",
+            borderRadius: 12,
             border: "none",
             cursor: "pointer",
             fontSize: 14,
-            fontWeight: 600,
+            fontWeight: 700,
+            overflow: "hidden",
+            whiteSpace: "nowrap",
           }}
         >
-          <LogOut size={18} />
+          <LogOut size={20} style={{ flexShrink: 0 }} />
           {isOpen && <span>Cerrar Sesión</span>}
         </button>
       </div>

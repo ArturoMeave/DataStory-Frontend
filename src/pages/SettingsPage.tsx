@@ -592,7 +592,6 @@ export function SettingsPage() {
 
       <div
         style={{
-          marginLeft: 260,
           flex: 1,
           display: "flex",
           flexDirection: "column",

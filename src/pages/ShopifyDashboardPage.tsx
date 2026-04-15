@@ -1,6 +1,5 @@
 import { useState, useEffect } from "react";
 import { Sidebar } from "../components/layout/Sidebar";
-import { Navbar } from "../components/layout/Navbar";
 import { Overview } from "../components/shopify/Overview";
 import { Products } from "../components/shopify/Products";
 import { Orders } from "../components/shopify/Orders";
@@ -66,7 +65,6 @@ export function ShopifyDashboardPage() {
       <Sidebar />
       <div
         style={{
-          marginLeft: 260,
           flex: 1,
           display: "flex",
           flexDirection: "column",
@@ -74,8 +72,6 @@ export function ShopifyDashboardPage() {
           overflow: "hidden",
         }}
       >
-        <Navbar />
-
         <main
           style={{
             padding: "32px",

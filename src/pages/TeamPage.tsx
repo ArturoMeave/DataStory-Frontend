@@ -121,12 +121,16 @@ export function TeamPage() {
 
   return (
     <div
-      style={{ display: "flex", height: "100vh", overflow: "hidden", background: "transparent" }}
+      style={{
+        display: "flex",
+        height: "100vh",
+        overflow: "hidden",
+        background: "transparent",
+      }}
     >
       <Sidebar />
       <div
         style={{
-          marginLeft: 260,
           flex: 1,
           display: "flex",
           flexDirection: "column",

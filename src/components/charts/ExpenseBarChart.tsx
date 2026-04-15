@@ -10,15 +10,12 @@ import {
   Rectangle,
 } from "recharts";
 import { useDataStore } from "../../stores/dataStore";
-import { isAnomalyIndex } from "../../utils/anomalyDetector";
 import { formatCurrency } from "../../utils/dataAggregator";
 import { ChartContainer } from "./ChartContainer";
 
 const COLORS = {
   bar: "rgba(34,211,160,0.25)",
   barStroke: "#22d3a0",
-  anomalyBar: "rgba(244,63,94,0.25)",
-  anomalyStroke: "#f43f5e",
   grid: "rgba(255,255,255,0.04)",
   axis: "#4a4a6a",
   tooltip: "#16161f",
@@ -26,51 +23,26 @@ const COLORS = {
 
 function CustomTooltip({ active, payload, label }: any) {
   if (!active || !payload?.length) return null;
-
-  const isAnomaly = payload[0]?.payload?._isAnomaly;
-
   return (
     <div
       style={{
         background: COLORS.tooltip,
-        border: `1px solid ${isAnomaly ? COLORS.anomalyStroke : "var(--color-border-hover)"}`,
+        border: "1px solid var(--color-border-hover)",
         borderRadius: "var(--radius-md)",
         padding: "10px 14px",
         minWidth: 160,
       }}
     >
-      <div
+      <p
         style={{
-          display: "flex",
-          alignItems: "center",
-          gap: 6,
+          fontSize: 11,
+          color: "var(--color-text-muted)",
           marginBottom: 6,
         }}
       >
-        <p style={{ fontSize: 11, color: "var(--color-text-muted)" }}>
-          {label}
-        </p>
-        {isAnomaly && (
-          <span
-            style={{
-              fontSize: 10,
-              padding: "1px 6px",
-              borderRadius: 10,
-              background: "var(--color-danger-dim)",
-              color: "var(--color-danger)",
-            }}
-          >
-            Anomalía
-          </span>
-        )}
-      </div>
-      <p
-        style={{
-          fontSize: 14,
-          fontWeight: 500,
-          color: isAnomaly ? COLORS.anomalyStroke : COLORS.barStroke,
-        }}
-      >
+        {label}
+      </p>
+      <p style={{ fontSize: 14, fontWeight: 500, color: COLORS.barStroke }}>
         {formatCurrency(payload[0].value)}
       </p>
     </div>
@@ -78,19 +50,14 @@ function CustomTooltip({ active, payload, label }: any) {
 }
 
 export function ExpenseBarChart() {
-  const { rows, anomalies } = useDataStore();
-
-  const chartData = rows.map((row, index) => ({
-    ...row,
-    _index: index,
-    _isAnomaly: isAnomalyIndex(anomalies, index),
-  }));
+  const { rows } = useDataStore();
+  const chartData = rows.map((row, index) => ({ ...row, _index: index }));
 
   return (
     <ChartContainer
       id="chart-expenses"
       title="Gastos por período"
-      subtitle="Las barras rojas indican picos estadísticamente inusuales"
+      subtitle="Histórico de gastos consolidados"
       height={220}
     >
       <ResponsiveContainer width="100%" height="100%">
@@ -109,18 +76,6 @@ export function ExpenseBarChart() {
               <stop
                 offset="95%"
                 stopColor={COLORS.barStroke}
-                stopOpacity={0.1}
-              />
-            </linearGradient>
-            <linearGradient id="colorAnomaly" x1="0" y1="0" x2="0" y2="1">
-              <stop
-                offset="5%"
-                stopColor={COLORS.anomalyStroke}
-                stopOpacity={0.6}
-              />
-              <stop
-                offset="95%"
-                stopColor={COLORS.anomalyStroke}
                 stopOpacity={0.1}
               />
             </linearGradient>
@@ -171,15 +126,11 @@ export function ExpenseBarChart() {
               />
             }
           >
-            {chartData.map((entry, i) => (
+            {chartData.map((_, i) => (
               <Cell
                 key={i}
-                fill={
-                  entry._isAnomaly ? "url(#colorAnomaly)" : "url(#colorBar)"
-                }
-                stroke={
-                  entry._isAnomaly ? COLORS.anomalyStroke : COLORS.barStroke
-                }
+                fill="url(#colorBar)"
+                stroke={COLORS.barStroke}
                 strokeWidth={1}
                 style={{ transition: "opacity 0.2s", opacity: 0.8 }}
               />
