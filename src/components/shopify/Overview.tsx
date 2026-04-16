@@ -9,6 +9,7 @@ import {
 import { useAuthStore } from "../../stores/authStore";
 import { useShopifyStore } from "../../stores/shopifyStore";
 import { useDataStore } from "../../stores/dataStore";
+import { DataChat } from "./DataChat"; // <-- Componente del chat importado
 import {
   LineChart,
   Line,
@@ -19,7 +20,6 @@ import {
   ResponsiveContainer,
 } from "recharts";
 
-// Componentes del Dashboard Universal
 import { RevenueLineChart } from "../charts/RevenueLineChart";
 import { ExpenseBarChart } from "../charts/ExpenseBarChart";
 import {
@@ -31,13 +31,13 @@ import {
 
 export function Overview() {
   const { token } = useAuthStore();
-  const { isConnected, isSkipped } = useShopifyStore(); // Saber en qué modo estamos
-  const { rows, setRows } = useDataStore(); // Los datos del Excel
+  const { isConnected, isSkipped } = useShopifyStore();
+  const { rows, setRows } = useDataStore();
 
   const [storeData, setStoreData] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  // 1. EL MENSAJERO DE SHOPIFY (Solo trabaja si hay tienda conectada)
+  // Fetch de Shopify
   useEffect(() => {
     if (isConnected && token) {
       setIsLoading(true);
@@ -56,6 +56,7 @@ export function Overview() {
     }
   }, [token, isConnected]);
 
+  // Fetch de los datos guardados del Excel (Persistencia)
   useEffect(() => {
     if (isSkipped && !isConnected && token) {
       fetch("http://localhost:3001/api/workspace/data", {
@@ -64,7 +65,7 @@ export function Overview() {
         .then((res) => res.json())
         .then((data) => {
           if (data.rows && data.rows.length > 0) {
-            setRows(data.rows); // Guardamos los datos en pantalla
+            setRows(data.rows);
           }
         })
         .catch((error) => console.error("Error recuperando Excel:", error));
@@ -72,7 +73,7 @@ export function Overview() {
   }, [isSkipped, isConnected, token, setRows]);
 
   // =======================================================================
-  // 🟢 MODO 1: DASHBOARD UNIVERSAL (Viene del Excel)
+  // 🟢 MODO 1: DASHBOARD UNIVERSAL (Datos del Excel)
   // =======================================================================
   if (isSkipped && !isConnected) {
     if (rows.length === 0) {
@@ -127,6 +128,7 @@ export function Overview() {
           animation: "fadeSlideUp 0.4s ease-out",
         }}
       >
+        {/* Tarjetas KPI */}
         <div
           style={{
             display: "grid",
@@ -224,6 +226,8 @@ export function Overview() {
             </h3>
           </div>
         </div>
+
+        {/* Gráficas */}
         <div
           style={{
             display: "grid",
@@ -277,14 +281,18 @@ export function Overview() {
             </div>
           </div>
         </div>
+
+        {/* <-- AQUÍ SE AÑADE EL CHAT PARA EL EXCEL --> */}
+        <div style={{ marginTop: "8px" }}>
+          <DataChat />
+        </div>
       </div>
     );
   }
 
   // =======================================================================
-  // 🛍️ MODO 2: DASHBOARD DE SHOPIFY (El tuyo original)
+  // 🛍️ MODO 2: DASHBOARD DE SHOPIFY (Original)
   // =======================================================================
-
   if (isLoading) {
     return (
       <div
