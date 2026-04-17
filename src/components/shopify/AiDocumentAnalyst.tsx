@@ -9,6 +9,7 @@ import {
   AlertCircle,
 } from "lucide-react";
 import { useAuthStore } from "../../stores/authStore";
+import { BASE_URL } from "../../services/api.service";
 
 interface Message {
   id: string;
@@ -49,7 +50,7 @@ export function AiDocumentAnalyst() {
 
       try {
         const response = await fetch(
-          "http://localhost:3001/api/ai/upload-pdf",
+          `${BASE_URL}/api/ai/upload-pdf`,
           {
             method: "POST",
             headers: {
@@ -106,7 +107,7 @@ export function AiDocumentAnalyst() {
     setIsTyping(true);
 
     try {
-      const response = await fetch("http://localhost:3001/api/ai/chat", {
+      const response = await fetch(`${BASE_URL}/api/ai/chat`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

@@ -1,4 +1,4 @@
-const BASE_URL = import.meta.env.VITE_API_URL ?? "http://localhost:3001";
+export const BASE_URL = import.meta.env.VITE_API_URL ?? "http://localhost:3001";
 
 async function request<T>(endpoint: string, options?: RequestInit): Promise<T> {
   const token = localStorage.getItem("datastory_token");
@@ -82,10 +82,11 @@ export async function registerUser(
   email: string,
   password: string,
   name?: string,
+  inviteCode?: string | null,
 ): Promise<any> {
   return request("/api/auth/register", {
     method: "POST",
-    body: JSON.stringify({ email, password, name }),
+    body: JSON.stringify({ email, password, name, inviteCode }),
   });
 }
 
@@ -199,9 +200,19 @@ export async function validateInvitation(code: string): Promise<any> {
   return request(`/api/invitations/validate/${code}`);
 }
 
-export async function acceptInvitation(code: string): Promise<any> {
+export async function acceptInvitation(code: string, force: boolean = false): Promise<any> {
   return request("/api/invitations/accept", {
     method: "POST",
-    body: JSON.stringify({ code }),
+    body: JSON.stringify({ code, force }),
+  });
+}
+
+export async function getWorkspaceInvitations(): Promise<any[]> {
+  return request("/api/invitations");
+}
+
+export async function revokeInvitation(id: string): Promise<any> {
+  return request(`/api/invitations/${id}`, {
+    method: "DELETE",
   });
 }

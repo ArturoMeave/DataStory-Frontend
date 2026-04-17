@@ -8,6 +8,7 @@ import { ExcelImport } from "../components/shopify/ExcelImport";
 import { AiDocumentAnalyst } from "../components/shopify/AiDocumentAnalyst";
 import { Analytics } from "../components/shopify/Analytics";
 import { TeamReports } from "../components/shopify/TeamReports";
+import { DataChat } from "../components/shopify/DataChat";
 import { SnapshotsHistory } from "../components/shopify/SnapshotsHistory";
 import { useShopifyStore } from "../stores/shopifyStore";
 import { useAuthStore } from "../stores/authStore";
@@ -17,6 +18,7 @@ import {
   ShoppingCart,
   AlertCircle,
 } from "lucide-react";
+import { BASE_URL } from "../services/api.service";
 
 export function ShopifyDashboardPage() {
   const {
@@ -45,7 +47,7 @@ export function ShopifyDashboardPage() {
     }
     const cleanShopName = shopUrl.replace(".myshopify.com", "").trim();
     const finalShopDomain = `${cleanShopName}.myshopify.com`;
-    window.location.href = `http://localhost:3001/api/auth/shopify?shop=${finalShopDomain}&userId=${user?.id}`;
+    window.location.href = `${BASE_URL}/api/auth/shopify?shop=${finalShopDomain}&userId=${user?.id}`;
   };
 
   const renderView = () => {
@@ -293,6 +295,7 @@ export function ShopifyDashboardPage() {
           {renderView()}
         </main>
       </div>
+      <DataChat />
     </div>
   );
 }

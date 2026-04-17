@@ -1,16 +1,12 @@
 import { useState, useEffect } from "react";
 import {
-  DollarSign,
-  ShoppingCart,
-  Package,
-  TrendingUp,
   AlertCircle,
   Camera,
+  Download,
 } from "lucide-react";
 import { useAuthStore } from "../../stores/authStore";
 import { useShopifyStore } from "../../stores/shopifyStore";
 import { useDataStore } from "../../stores/dataStore";
-import { DataChat } from "./DataChat";
 import {
   LineChart,
   Line,
@@ -20,6 +16,8 @@ import {
   Tooltip,
   ResponsiveContainer,
 } from "recharts";
+import html2canvas from "html2canvas";
+import jsPDF from "jspdf";
 
 import { RevenueLineChart } from "../charts/RevenueLineChart";
 import { ExpenseBarChart } from "../charts/ExpenseBarChart";
@@ -29,6 +27,7 @@ import {
   totalExpenses,
   netProfit,
 } from "../../utils/dataAggregator";
+import { BASE_URL } from "../../services/api.service";
 
 export function Overview() {
   const { token } = useAuthStore();
@@ -41,7 +40,7 @@ export function Overview() {
   useEffect(() => {
     if (isConnected && token) {
       setIsLoading(true);
-      fetch("http://localhost:3001/api/auth/shopify/data", {
+      fetch(`${BASE_URL}/api/auth/shopify/data`, {
         headers: { Authorization: `Bearer ${token}` },
       })
         .then((res) => res.json())
@@ -49,34 +48,49 @@ export function Overview() {
           setStoreData(datos);
           setIsLoading(false);
         })
-        .catch((error) => {
-          console.error("Error trayendo datos:", error);
-          setIsLoading(false);
-        });
+        .catch(() => setIsLoading(false));
     }
   }, [token, isConnected]);
 
   useEffect(() => {
     if (isSkipped && !isConnected && token) {
-      fetch("http://localhost:3001/api/workspace/data", {
+      fetch(`${BASE_URL}/api/workspace/data`, {
         headers: { Authorization: `Bearer ${token}` },
       })
         .then((res) => res.json())
         .then((data) => {
-          if (data.rows && data.rows.length > 0) {
-            setRows(data.rows);
-          }
+          if (data.rows && data.rows.length > 0) setRows(data.rows);
         })
-        .catch((error) => console.error("Error recuperando Excel:", error));
+        .catch(() => {});
     }
   }, [isSkipped, isConnected, token, setRows]);
+
+  const exportToPDF = async () => {
+    const element = document.getElementById("dashboard-content");
+    if (!element) return;
+    try {
+      const canvas = await html2canvas(element, {
+        scale: 2,
+        useCORS: true,
+        backgroundColor: "#ffffff",
+      });
+      const imgData = canvas.toDataURL("image/png");
+      const pdf = new jsPDF("p", "mm", "a4");
+      const width = pdf.internal.pageSize.getWidth();
+      const height = (canvas.height * width) / canvas.width;
+      pdf.addImage(imgData, "PNG", 0, 0, width, height);
+      pdf.save(`Reporte_DataStory_${new Date().toLocaleDateString()}.pdf`);
+    } catch (err) {
+      alert("Error al generar PDF.");
+    }
+  };
 
   const saveSnapshot = async () => {
     const rev = totalRevenue(rows);
     const exp = totalExpenses(rows);
     const profit = netProfit(rows);
 
-    const response = await fetch("http://localhost:3001/api/snapshots", {
+    const res = await fetch(`${BASE_URL}/api/snapshots`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -91,11 +105,7 @@ export function Overview() {
       }),
     });
 
-    if (response.ok) {
-      alert("Snapshot guardado con éxito.");
-    } else {
-      alert("Error al guardar el informe.");
-    }
+    if (res.ok) alert("Snapshot guardado con éxito.");
   };
 
   if (isSkipped && !isConnected) {
@@ -128,11 +138,10 @@ export function Overview() {
               marginBottom: 8,
             }}
           >
-            No hay datos en memoria
+            No hay datos
           </h3>
           <p style={{ color: "var(--color-text-secondary)", maxWidth: 400 }}>
-            Dirígete a la pestaña "Importar Excel" y sube tu archivo CSV para
-            generar el Dashboard.
+            Importa tu Excel primero.
           </p>
         </div>
       );
@@ -161,185 +170,184 @@ export function Overview() {
           <h2 style={{ fontSize: 24, fontWeight: 700, margin: 0 }}>
             Dashboard Universal
           </h2>
-          <button
-            onClick={saveSnapshot}
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: 8,
-              padding: "10px 16px",
-              background: "var(--color-accent)",
-              color: "white",
-              border: "none",
-              borderRadius: 8,
-              cursor: "pointer",
-              fontWeight: 600,
-            }}
-          >
-            <Camera size={18} /> Guardar Informe
-          </button>
-        </div>
-
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "repeat(3, 1fr)",
-            gap: "24px",
-          }}
-        >
-          <div
-            style={{
-              background: "var(--color-bg-card)",
-              padding: 24,
-              borderRadius: 16,
-              border: "1px solid var(--color-border)",
-            }}
-          >
-            <p
+          <div style={{ display: "flex", gap: 12 }}>
+            <button
+              onClick={exportToPDF}
               style={{
-                fontSize: 13,
-                fontWeight: 600,
-                color: "var(--color-text-muted)",
-                marginBottom: 8,
-                textTransform: "uppercase",
-              }}
-            >
-              Ingresos Totales
-            </p>
-            <h3
-              style={{
-                fontSize: 32,
-                fontWeight: 800,
+                display: "flex",
+                alignItems: "center",
+                gap: 8,
+                padding: "10px 16px",
+                background: "var(--color-bg-surface)",
                 color: "var(--color-text-primary)",
-              }}
-            >
-              {formatCurrency(rev)}
-            </h3>
-          </div>
-          <div
-            style={{
-              background: "var(--color-bg-card)",
-              padding: 24,
-              borderRadius: 16,
-              border: "1px solid var(--color-border)",
-            }}
-          >
-            <p
-              style={{
-                fontSize: 13,
+                border: "1px solid var(--color-border)",
+                borderRadius: 8,
+                cursor: "pointer",
                 fontWeight: 600,
-                color: "var(--color-text-muted)",
-                marginBottom: 8,
-                textTransform: "uppercase",
               }}
             >
-              Gastos Totales
-            </p>
-            <h3
+              <Download size={18} /> Exportar PDF
+            </button>
+            <button
+              onClick={saveSnapshot}
               style={{
-                fontSize: 32,
-                fontWeight: 800,
-                color: "var(--color-text-primary)",
-              }}
-            >
-              {formatCurrency(exp)}
-            </h3>
-          </div>
-          <div
-            style={{
-              background: "var(--color-bg-card)",
-              padding: 24,
-              borderRadius: 16,
-              border: "1px solid var(--color-border)",
-            }}
-          >
-            <p
-              style={{
-                fontSize: 13,
+                display: "flex",
+                alignItems: "center",
+                gap: 8,
+                padding: "10px 16px",
+                background: "var(--color-accent)",
+                color: "white",
+                border: "none",
+                borderRadius: 8,
+                cursor: "pointer",
                 fontWeight: 600,
-                color: "var(--color-text-muted)",
-                marginBottom: 8,
-                textTransform: "uppercase",
               }}
             >
-              Beneficio Neto
-            </p>
-            <h3
-              style={{
-                fontSize: 32,
-                fontWeight: 800,
-                color:
-                  profit >= 0 ? "var(--color-success)" : "var(--color-danger)",
-              }}
-            >
-              {profit > 0 ? "+" : ""}
-              {formatCurrency(profit)}
-            </h3>
+              <Camera size={18} /> Guardar Informe
+            </button>
           </div>
         </div>
 
         <div
+          id="dashboard-content"
           style={{
-            display: "grid",
-            gridTemplateColumns: "1fr 1fr",
-            gap: "24px",
-            minHeight: 400,
+            padding: "20px",
+            background: "var(--color-bg-base)",
+            borderRadius: 16,
+            display: "flex",
+            flexDirection: "column",
+            gap: 24,
           }}
         >
           <div
             style={{
-              background: "var(--color-bg-card)",
-              borderRadius: 16,
-              border: "1px solid var(--color-border)",
-              padding: 16,
+              display: "grid",
+              gridTemplateColumns: "repeat(3, 1fr)",
+              gap: "24px",
             }}
           >
-            <h3
+            <div
               style={{
-                fontSize: 16,
-                fontWeight: 600,
-                marginBottom: 16,
-                paddingLeft: 8,
+                background: "var(--color-bg-card)",
+                padding: 24,
+                borderRadius: 16,
+                border: "1px solid var(--color-border)",
               }}
             >
-              Evolución de Ingresos
-            </h3>
-            <div style={{ height: 300 }}>
-              <RevenueLineChart />
+              <p
+                style={{
+                  fontSize: 13,
+                  fontWeight: 600,
+                  color: "var(--color-text-muted)",
+                  marginBottom: 8,
+                }}
+              >
+                INGRESOS TOTALES
+              </p>
+              <h3 style={{ fontSize: 32, fontWeight: 800 }}>
+                {formatCurrency(rev)}
+              </h3>
+            </div>
+            <div
+              style={{
+                background: "var(--color-bg-card)",
+                padding: 24,
+                borderRadius: 16,
+                border: "1px solid var(--color-border)",
+              }}
+            >
+              <p
+                style={{
+                  fontSize: 13,
+                  fontWeight: 600,
+                  color: "var(--color-text-muted)",
+                  marginBottom: 8,
+                }}
+              >
+                GASTOS TOTALES
+              </p>
+              <h3 style={{ fontSize: 32, fontWeight: 800 }}>
+                {formatCurrency(exp)}
+              </h3>
+            </div>
+            <div
+              style={{
+                background: "var(--color-bg-card)",
+                padding: 24,
+                borderRadius: 16,
+                border: "1px solid var(--color-border)",
+              }}
+            >
+              <p
+                style={{
+                  fontSize: 13,
+                  fontWeight: 600,
+                  color: "var(--color-text-muted)",
+                  marginBottom: 8,
+                }}
+              >
+                BENEFICIO NETO
+              </p>
+              <h3
+                style={{
+                  fontSize: 32,
+                  fontWeight: 800,
+                  color:
+                    profit >= 0
+                      ? "var(--color-success)"
+                      : "var(--color-danger)",
+                }}
+              >
+                {formatCurrency(profit)}
+              </h3>
             </div>
           </div>
           <div
             style={{
-              background: "var(--color-bg-card)",
-              borderRadius: 16,
-              border: "1px solid var(--color-border)",
-              padding: 16,
+              display: "grid",
+              gridTemplateColumns: "1fr 1fr",
+              gap: "24px",
+              minHeight: 400,
             }}
           >
-            <h3
+            <div
               style={{
-                fontSize: 16,
-                fontWeight: 600,
-                marginBottom: 16,
-                paddingLeft: 8,
+                background: "var(--color-bg-card)",
+                borderRadius: 16,
+                border: "1px solid var(--color-border)",
+                padding: 16,
               }}
             >
-              Desglose de Gastos
-            </h3>
-            <div style={{ height: 300 }}>
-              <ExpenseBarChart />
+              <h3 style={{ fontSize: 16, fontWeight: 600, marginBottom: 16 }}>
+                Evolución
+              </h3>
+              <div style={{ height: 300 }}>
+                <RevenueLineChart />
+              </div>
+            </div>
+            <div
+              style={{
+                background: "var(--color-bg-card)",
+                borderRadius: 16,
+                border: "1px solid var(--color-border)",
+                padding: 16,
+              }}
+            >
+              <h3 style={{ fontSize: 16, fontWeight: 600, marginBottom: 16 }}>
+                Gastos
+              </h3>
+              <div style={{ height: 300 }}>
+                <ExpenseBarChart />
+              </div>
             </div>
           </div>
         </div>
-
-        <div style={{ marginTop: "8px" }}>
-          <DataChat />
-        </div>
+        <div style={{ marginTop: "8px" }}></div>
       </div>
     );
   }
 
-  if (isLoading) {
+  if (isLoading)
     return (
       <div
         style={{
@@ -348,27 +356,9 @@ export function Overview() {
           textAlign: "center",
         }}
       >
-        ⏳ Analizando tienda...
+        ⏳ Analizando...
       </div>
     );
-  }
-
-  if (storeData?.error) {
-    return (
-      <div
-        style={{
-          background: "rgba(244,63,94,0.1)",
-          padding: 24,
-          borderRadius: 12,
-          border: "1px solid var(--color-danger)",
-          color: "var(--color-danger)",
-        }}
-      >
-        <h3>🛑 Error</h3>
-        <p>{storeData.error}</p>
-      </div>
-    );
-  }
 
   const chartData =
     storeData?.recentOrders
@@ -390,95 +380,89 @@ export function Overview() {
         animation: "fadeSlideUp 0.4s ease-out",
       }}
     >
+      <div style={{ display: "flex", justifyContent: "flex-end" }}>
+        <button
+          onClick={exportToPDF}
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 8,
+            padding: "10px 16px",
+            background: "var(--color-bg-surface)",
+            color: "var(--color-text-primary)",
+            border: "1px solid var(--color-border)",
+            borderRadius: 8,
+            cursor: "pointer",
+            fontWeight: 600,
+          }}
+        >
+          <Download size={18} /> Exportar PDF
+        </button>
+      </div>
       <div
+        id="dashboard-content"
         style={{
-          display: "grid",
-          gridTemplateColumns: "repeat(3, 1fr)",
-          gap: "24px",
+          display: "flex",
+          flexDirection: "column",
+          gap: 24,
+          padding: "20px",
+          background: "var(--color-bg-base)",
+          borderRadius: 16,
         }}
       >
         <div
           style={{
-            background: "var(--color-bg-card)",
-            padding: 24,
-            borderRadius: 16,
-            border: "1px solid var(--color-border)",
+            display: "grid",
+            gridTemplateColumns: "repeat(3, 1fr)",
+            gap: "24px",
           }}
         >
           <div
             style={{
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "space-between",
-              marginBottom: 16,
+              background: "var(--color-bg-card)",
+              padding: 24,
+              borderRadius: 16,
+              border: "1px solid var(--color-border)",
             }}
           >
             <span style={{ fontWeight: 600, color: "var(--color-text-muted)" }}>
               Ingresos Totales
             </span>
-            <div
-              style={{
-                padding: 8,
-                background: "rgba(34, 197, 94, 0.1)",
-                borderRadius: 8,
-              }}
-            >
-              <DollarSign size={20} color="#22c55e" />
-            </div>
+            <p style={{ fontSize: 32, fontWeight: 700 }}>
+              ${storeData?.totalRevenue?.toFixed(2) || "0.00"}
+            </p>
           </div>
-          <p
-            style={{
-              fontSize: 32,
-              fontWeight: 700,
-              color: "var(--color-text-primary)",
-              margin: 0,
-            }}
-          >
-            ${storeData?.totalRevenue?.toFixed(2) || "0.00"}
-          </p>
-        </div>
-
-        <div
-          style={{
-            background: "var(--color-bg-card)",
-            padding: 24,
-            borderRadius: 16,
-            border: "1px solid var(--color-border)",
-          }}
-        >
           <div
             style={{
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "space-between",
-              marginBottom: 16,
+              background: "var(--color-bg-card)",
+              padding: 24,
+              borderRadius: 16,
+              border: "1px solid var(--color-border)",
             }}
           >
             <span style={{ fontWeight: 600, color: "var(--color-text-muted)" }}>
               Pedidos
             </span>
-            <div
-              style={{
-                padding: 8,
-                background: "rgba(59, 130, 246, 0.1)",
-                borderRadius: 8,
-              }}
-            >
-              <ShoppingCart size={20} color="#3b82f6" />
-            </div>
+            <p style={{ fontSize: 32, fontWeight: 700 }}>
+              {storeData?.orderCount || 0}
+            </p>
           </div>
-          <p
+          <div
             style={{
-              fontSize: 32,
-              fontWeight: 700,
-              color: "var(--color-text-primary)",
-              margin: 0,
+              background: "var(--color-bg-card)",
+              padding: 24,
+              borderRadius: 16,
+              border: "1px solid var(--color-border)",
             }}
           >
-            {storeData?.orderCount || 0}
-          </p>
+            <span style={{ fontWeight: 600, color: "var(--color-text-muted)" }}>
+              Catálogo
+            </span>
+            <p style={{ fontSize: 32, fontWeight: 700 }}>
+              {storeData?.productCount || 0}
+            </p>
+          </div>
         </div>
-
         <div
           style={{
             background: "var(--color-bg-card)",
@@ -487,108 +471,48 @@ export function Overview() {
             border: "1px solid var(--color-border)",
           }}
         >
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "space-between",
-              marginBottom: 16,
-            }}
-          >
-            <span style={{ fontWeight: 600, color: "var(--color-text-muted)" }}>
-              Catálogo
-            </span>
-            <div
-              style={{
-                padding: 8,
-                background: "rgba(168, 85, 247, 0.1)",
-                borderRadius: 8,
-              }}
-            >
-              <Package size={20} color="#a855f7" />
-            </div>
-          </div>
-          <p
-            style={{
-              fontSize: 32,
-              fontWeight: 700,
-              color: "var(--color-text-primary)",
-              margin: 0,
-            }}
-          >
-            {storeData?.productCount || 0}
-          </p>
-        </div>
-      </div>
-
-      <div
-        style={{
-          background: "var(--color-bg-card)",
-          padding: 24,
-          borderRadius: 16,
-          border: "1px solid var(--color-border)",
-        }}
-      >
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: 12,
-            marginBottom: 24,
-          }}
-        >
-          <TrendingUp size={20} color="var(--color-text-primary)" />
-          <h3
-            style={{
-              fontSize: 18,
-              fontWeight: 600,
-              color: "var(--color-text-primary)",
-              margin: 0,
-            }}
-          >
+          <h3 style={{ fontSize: 18, fontWeight: 600, marginBottom: 24 }}>
             Ventas
           </h3>
-        </div>
-        <div style={{ height: 300, width: "100%" }}>
-          <ResponsiveContainer width="100%" height="100%">
-            <LineChart data={chartData}>
-              <CartesianGrid
-                strokeDasharray="3 3"
-                stroke="var(--color-border)"
-                vertical={false}
-              />
-              <XAxis
-                dataKey="name"
-                stroke="var(--color-text-muted)"
-                fontSize={12}
-                tickLine={false}
-                axisLine={false}
-              />
-              <YAxis
-                stroke="var(--color-text-muted)"
-                fontSize={12}
-                tickLine={false}
-                axisLine={false}
-                tickFormatter={(value) => `$${value}`}
-              />
-              <Tooltip
-                contentStyle={{
-                  background: "var(--color-bg-surface)",
-                  border: "1px solid var(--color-border)",
-                  borderRadius: 8,
-                }}
-                itemStyle={{ color: "var(--color-accent)", fontWeight: 700 }}
-              />
-              <Line
-                type="monotone"
-                dataKey="ventas"
-                stroke="var(--color-accent)"
-                strokeWidth={3}
-                dot={{ r: 4, fill: "var(--color-accent)" }}
-                activeDot={{ r: 6 }}
-              />
-            </LineChart>
-          </ResponsiveContainer>
+          <div style={{ height: 300, width: "100%" }}>
+            <ResponsiveContainer width="100%" height="100%">
+              <LineChart data={chartData}>
+                <CartesianGrid
+                  strokeDasharray="3 3"
+                  stroke="var(--color-border)"
+                  vertical={false}
+                />
+                <XAxis
+                  dataKey="name"
+                  stroke="var(--color-text-muted)"
+                  fontSize={12}
+                  tickLine={false}
+                  axisLine={false}
+                />
+                <YAxis
+                  stroke="var(--color-text-muted)"
+                  fontSize={12}
+                  tickLine={false}
+                  axisLine={false}
+                  tickFormatter={(v) => `$${v}`}
+                />
+                <Tooltip
+                  contentStyle={{
+                    background: "var(--color-bg-surface)",
+                    border: "1px solid var(--color-border)",
+                    borderRadius: 8,
+                  }}
+                />
+                <Line
+                  type="monotone"
+                  dataKey="ventas"
+                  stroke="var(--color-accent)"
+                  strokeWidth={3}
+                  dot={{ r: 4 }}
+                />
+              </LineChart>
+            </ResponsiveContainer>
+          </div>
         </div>
       </div>
     </div>

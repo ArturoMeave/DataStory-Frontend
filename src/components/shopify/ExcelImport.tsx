@@ -11,6 +11,7 @@ import { useDataStore } from "../../stores/dataStore";
 import { useShopifyStore } from "../../stores/shopifyStore";
 // 1. IMPORTAMOS TU FUNCIÓN CON EL NOMBRE CORRECTO
 import { parseCSVFile } from "../../utils/csvParser";
+import { BASE_URL } from "../../services/api.service";
 
 export function ExcelImport() {
   const { token } = useAuthStore();
@@ -68,7 +69,7 @@ export function ExcelImport() {
       if (file.name.endsWith(".csv")) {
         const parsedData = await parseCSVFile(file);
 
-        await fetch("http://localhost:3001/api/workspace/data", {
+        await fetch(`${BASE_URL}/api/workspace/data`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",

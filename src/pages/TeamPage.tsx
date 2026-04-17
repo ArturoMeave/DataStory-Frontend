@@ -16,6 +16,8 @@ import {
   updateMemberRole,
   generateInvitation,
   acceptInvitation,
+  getWorkspaceInvitations,
+  revokeInvitation,
 } from "../services/api.service";
 
 interface Member {
@@ -30,6 +32,7 @@ export function TeamPage() {
   const { user, updateUser } = useAuthStore();
 
   const [members, setMembers] = useState<Member[]>([]);
+  const [invitations, setInvitations] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [, setError] = useState<string | null>(null);
 
@@ -44,6 +47,11 @@ export function TeamPage() {
     try {
       const data = await getWorkspaceMembers();
       setMembers(data as Member[]);
+
+      if (user && (user as any).role === "OWNER" || (user as any).role === "ADMIN") {
+        const invs = await getWorkspaceInvitations();
+        setInvitations(invs);
+      }
     } catch (err: any) {
       setError("No se pudo cargar el equipo.");
     } finally {
@@ -61,6 +69,16 @@ export function TeamPage() {
       fetchMembers();
     } catch (err: any) {
       alert(err.message || "No tienes permisos.");
+    }
+  };
+
+  const handleRevokeInvitation = async (id: string) => {
+    if(!confirm("¿Segur@ que quieres revocar este enlace?")) return;
+    try {
+      await revokeInvitation(id);
+      fetchMembers();
+    } catch (err: any) {
+      alert(err.message || "Error al revocar.");
     }
   };
 
@@ -621,6 +639,82 @@ export function TeamPage() {
                 </div>
               )}
             </SpotlightCard>
+            {isAdmin && invitations.length > 0 && (
+              <SpotlightCard>
+                <div
+                  style={{
+                    padding: "24px 28px",
+                    borderBottom: "1px solid var(--color-border)",
+                  }}
+                >
+                  <h3
+                    style={{
+                      fontSize: 16,
+                      fontWeight: 600,
+                      color: "var(--color-text-primary)",
+                    }}
+                  >
+                    Invitaciones Pendientes
+                  </h3>
+                </div>
+                <div style={{ display: "flex", flexDirection: "column" }}>
+                  {invitations.map((inv) => {
+                    const isExpired = new Date(inv.expiresAt) < new Date();
+                    return (
+                      <div
+                        key={inv.id}
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "space-between",
+                          padding: "20px 28px",
+                          borderBottom: "1px solid var(--color-border)",
+                        }}
+                      >
+                        <div>
+                          <p style={{ fontSize: 13, color: "var(--color-accent)", fontFamily: "monospace", letterSpacing: "1px", fontWeight: 700 }}>
+                            {inv.code}
+                          </p>
+                          <p style={{ fontSize: 12, color: isExpired ? "var(--color-danger)" : "var(--color-text-muted)", marginTop: 4 }}>
+                            {isExpired ? "Expirada" : `Válida hasta: ${new Date(inv.expiresAt).toLocaleDateString()}`}
+                          </p>
+                        </div>
+                        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                          <span
+                            style={{
+                              fontSize: 10,
+                              fontWeight: 700,
+                              padding: "4px 8px",
+                              borderRadius: "6px",
+                              background: "rgba(124, 58, 237, 0.1)",
+                              color: "var(--color-accent)",
+                              textTransform: "uppercase",
+                            }}
+                          >
+                            ROL: {inv.role}
+                          </span>
+                          <button
+                            onClick={() => handleRevokeInvitation(inv.id)}
+                            style={{
+                              padding: "6px 12px",
+                              borderRadius: "6px",
+                              background: "var(--color-danger-dim)",
+                              color: "var(--color-danger)",
+                              border: "1px solid var(--color-danger)",
+                              fontSize: 12,
+                              fontWeight: 600,
+                              cursor: "pointer",
+                            }}
+                          >
+                            Revocar
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </SpotlightCard>
+            )}
           </div>
         </main>
       </div>

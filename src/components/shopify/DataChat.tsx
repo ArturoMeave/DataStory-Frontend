@@ -1,80 +1,115 @@
 import { useState, useRef, useEffect } from "react";
-import { Send, Loader2, Sparkles, X, MessageSquare } from "lucide-react";
+import { Send, Bot, X, MessageSquare, Loader2 } from "lucide-react";
 import { useAuthStore } from "../../stores/authStore";
 import { useDataStore } from "../../stores/dataStore";
-
-interface Message {
-  id: string;
-  role: "user" | "ai";
-  text: string;
-}
+import { useShopifyStore } from "../../stores/shopifyStore";
+import { BASE_URL } from "../../services/api.service";
 
 export function DataChat() {
   const { token } = useAuthStore();
   const { rows } = useDataStore();
+  const { isConnected, activeView } = useShopifyStore();
 
-  // Estado para controlar si el chat está abierto o cerrado
   const [isOpen, setIsOpen] = useState(false);
-  const [messages, setMessages] = useState<Message[]>([
+  const [messages, setMessages] = useState<
+    { role: "user" | "ai"; text: string }[]
+  >([
     {
-      id: "welcome",
       role: "ai",
-      text: "¡Hola! Soy tu Analista de Datos. ¿En qué puedo ayudarte hoy respecto a tus cifras?",
+      text: "¡Hola! Soy tu Copiloto Financiero. Estoy analizando tus datos en tiempo real. ¿Qué necesitas saber sobre tu negocio hoy?",
     },
   ]);
-  const [inputValue, setInputValue] = useState("");
-  const [isTyping, setIsTyping] = useState(false);
-
+  const [input, setInput] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages, isTyping]);
+  }, [messages, isOpen]);
 
-  const handleSendMessage = async (e?: React.FormEvent) => {
-    e?.preventDefault();
-    if (!inputValue.trim() || rows.length === 0) return;
+  const handleSend = async () => {
+    if (!input.trim() || !token) return;
 
-    const userText = inputValue;
-    setMessages((prev) => [
-      ...prev,
-      { id: Date.now().toString(), role: "user", text: userText },
-    ]);
-    setInputValue("");
-    setIsTyping(true);
+    const userText = input.trim();
+    setMessages((prev) => [...prev, { role: "user", text: userText }]);
+    setInput("");
+    setIsLoading(true);
 
     try {
-      const response = await fetch(
-        "http://localhost:3001/api/ai/analyze-data",
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-          body: JSON.stringify({ data: rows, question: userText }),
-        },
-      );
+      // 1. Barrido de datos en paralelo
+      const headers = { Authorization: `Bearer ${token}` };
+      
+      const promises = [
+        fetch(`${BASE_URL}/api/snapshots/me`, { headers }).then(r => r.json()).catch(() => []),
+        fetch(`${BASE_URL}/api/invitations`, { headers }).then(r => r.json()).catch(() => []),
+      ];
 
-      const result = await response.json();
+      if (isConnected) {
+        promises.push(
+          fetch(`${BASE_URL}/api/auth/shopify/data`, { headers })
+            .then(r => r.json())
+            .catch(() => ({}))
+        );
+      } else {
+        promises.push(Promise.resolve({}));
+      }
+
+      const [snapshots, invitations, shopifyData] = await Promise.all(promises);
+
+      const totalInformesGuardados = Array.isArray(snapshots) ? snapshots.length : 0;
+      const totalMiembros = Array.isArray(invitations) ? invitations.length : 0;
+
+      // 2. Construimos el masterContext Omnisciente
+      const masterContext = {
+        appState: {
+          modo_conexion: isConnected ? "Shopify" : "Manual (Excel)",
+          pestaña_activa: activeView,
+        },
+        financials: {
+          ingresos_totales: shopifyData?.totalRevenue || shopifyData?.ingresos || 0,
+          pedidos_totales: shopifyData?.totalOrders || shopifyData?.pedidos || 0,
+          filas_en_pantalla: rows.length,
+        },
+        workspace: {
+          total_snapshots: totalInformesGuardados,
+          total_miembros: totalMiembros,
+        }
+      };
+
+      const res = await fetch(`${BASE_URL}/api/ai/analyze-data`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          data: masterContext,
+          prompt: userText,
+        }),
+      });
+
+      if (!res.ok) throw new Error("Error en la respuesta de la IA");
+
+      const responseData = await res.json();
+
       setMessages((prev) => [
         ...prev,
-        { id: Date.now().toString(), role: "ai", text: result.answer },
+        { role: "ai", text: responseData.analysis },
       ]);
     } catch (error) {
+      console.error("Error al hablar con la IA:", error);
       setMessages((prev) => [
         ...prev,
         {
-          id: Date.now().toString(),
           role: "ai",
-          text: "Error al conectar con el analista.",
+          text: "Lo siento, parece que hay un problema de conexión con mi cerebro. ¿Podrías intentarlo de nuevo?",
         },
       ]);
     } finally {
-      setIsTyping(false);
+      setIsLoading(false);
     }
   };
 
-  // Si el chat está cerrado, mostramos el botón flotante
   if (!isOpen) {
     return (
       <button
@@ -85,27 +120,25 @@ export function DataChat() {
           right: "32px",
           width: "60px",
           height: "60px",
-          borderRadius: "50%",
-          background: "var(--color-accent)",
+          borderRadius: "30px",
+          background:
+            "linear-gradient(135deg, var(--color-accent) 0%, #7c6aff 100%)",
           color: "white",
           border: "none",
+          boxShadow: "0 8px 24px rgba(149, 191, 71, 0.4)",
           cursor: "pointer",
-          boxShadow: "0 4px 12px rgba(124, 106, 255, 0.3)",
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
-          zIndex: 1000,
-          transition: "transform 0.2s",
+          zIndex: 9999,
+          transition: "transform 0.2s cubic-bezier(0.4, 0, 0.2, 1)",
         }}
-        onMouseEnter={(e) => (e.currentTarget.style.transform = "scale(1.05)")}
-        onMouseLeave={(e) => (e.currentTarget.style.transform = "scale(1)")}
       >
         <MessageSquare size={28} />
       </button>
     );
   }
 
-  // Si está abierto, mostramos la ventana del chat
   return (
     <div
       style={{
@@ -113,41 +146,47 @@ export function DataChat() {
         bottom: "32px",
         right: "32px",
         width: "380px",
-        height: "500px",
+        height: "550px",
         background: "var(--color-bg-card)",
-        borderRadius: "16px",
         border: "1px solid var(--color-border)",
-        boxShadow: "0 8px 32px rgba(0,0,0,0.15)",
+        borderRadius: "20px",
+        boxShadow: "0 12px 40px rgba(0,0,0,0.2)",
         display: "flex",
         flexDirection: "column",
-        zIndex: 1000,
         overflow: "hidden",
+        zIndex: 9999,
         animation: "fadeSlideUp 0.3s ease-out",
       }}
     >
       <div
         style={{
-          padding: "16px",
-          background: "var(--color-bg-elevated)",
-          borderBottom: "1px solid var(--color-border)",
+          background:
+            "linear-gradient(135deg, var(--color-accent) 0%, #7c6aff 100%)",
+          padding: "16px 20px",
           display: "flex",
-          alignItems: "center",
           justifyContent: "space-between",
+          alignItems: "center",
+          color: "white",
         }}
       >
-        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-          <Sparkles size={18} color="var(--color-accent)" />
-          <span style={{ fontWeight: 600, fontSize: 14 }}>
-            Analista de Datos
-          </span>
+        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+          <Bot size={20} />
+          <div>
+            <h3 style={{ margin: 0, fontSize: 16, fontWeight: 700 }}>
+              Copiloto IA
+            </h3>
+            <p style={{ margin: 0, fontSize: 12, opacity: 0.9 }}>
+              DataStory Inteligencia
+            </p>
+          </div>
         </div>
         <button
           onClick={() => setIsOpen(false)}
           style={{
             background: "transparent",
             border: "none",
+            color: "white",
             cursor: "pointer",
-            color: "var(--color-text-muted)",
           }}
         >
           <X size={20} />
@@ -158,19 +197,18 @@ export function DataChat() {
         style={{
           flex: 1,
           overflowY: "auto",
-          padding: "16px",
+          padding: "20px",
           display: "flex",
           flexDirection: "column",
-          gap: "12px",
+          gap: 16,
         }}
-        className="custom-scrollbar"
       >
-        {messages.map((msg) => (
+        {messages.map((msg, i) => (
           <div
-            key={msg.id}
+            key={i}
             style={{
               display: "flex",
-              gap: 10,
+              gap: 12,
               flexDirection: msg.role === "user" ? "row-reverse" : "row",
             }}
           >
@@ -179,76 +217,74 @@ export function DataChat() {
                 background:
                   msg.role === "user"
                     ? "var(--color-accent)"
-                    : "var(--color-bg-elevated)",
+                    : "var(--color-bg-surface)",
+                padding: "10px 14px",
+                borderRadius: "12px",
+                fontSize: 14,
+                maxWidth: "80%",
                 color:
                   msg.role === "user" ? "white" : "var(--color-text-primary)",
-                padding: "8px 12px", // Un poco más compacto
-                borderRadius: "12px",
-                maxWidth: "85%",
-                fontSize: "13px", // Fuente ligeramente más pequeña para rapidez visual
-                lineHeight: "1.4",
-                border:
-                  msg.role === "user"
-                    ? "none"
-                    : "1px solid var(--color-border)",
-                whiteSpace: "pre-wrap",
               }}
             >
               {msg.text}
             </div>
           </div>
         ))}
-        {isTyping && (
-          <div style={{ display: "flex", gap: 10 }}>
-            <Loader2
-              size={16}
-              className="animate-spin"
-              color="var(--color-text-muted)"
-            />
+        {isLoading && (
+          <div
+            style={{
+              display: "flex",
+              gap: 8,
+              color: "var(--color-text-muted)",
+              fontSize: 14,
+            }}
+          >
+            <Loader2 size={16} className="animate-spin" /> Analizando datos...
           </div>
         )}
         <div ref={messagesEndRef} />
       </div>
 
-      <form
-        onSubmit={handleSendMessage}
+      <div
         style={{
-          padding: "12px",
+          padding: "16px",
           borderTop: "1px solid var(--color-border)",
           display: "flex",
-          gap: 8,
+          gap: 10,
         }}
       >
         <input
           type="text"
-          value={inputValue}
-          onChange={(e) => setInputValue(e.target.value)}
-          placeholder="Pregunta sobre tus datos..."
+          value={input}
+          onChange={(e) => setInput(e.target.value)}
+          onKeyDown={(e) => e.key === "Enter" && handleSend()}
+          placeholder="Pregunta sobre tus informes o datos..."
           style={{
             flex: 1,
-            padding: "10px",
-            background: "var(--color-bg-elevated)",
+            background: "var(--color-bg-surface)",
             border: "1px solid var(--color-border)",
-            borderRadius: "8px",
-            fontSize: 13,
-            color: "var(--color-text-primary)",
+            padding: "10px 16px",
+            borderRadius: "20px",
             outline: "none",
+            color: "var(--color-text-primary)",
           }}
         />
         <button
-          type="submit"
+          onClick={handleSend}
+          disabled={isLoading}
           style={{
-            padding: "8px 12px",
             background: "var(--color-accent)",
             color: "white",
             border: "none",
-            borderRadius: "8px",
+            width: "40px",
+            height: "40px",
+            borderRadius: "20px",
             cursor: "pointer",
           }}
         >
-          <Send size={16} />
+          <Send size={18} />
         </button>
-      </form>
+      </div>
     </div>
   );
 }

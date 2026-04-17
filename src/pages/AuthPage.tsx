@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { BarChart2, Mail, Lock, User, AlertCircle, Shield } from "lucide-react";
 import { Button } from "../components/ui/Button";
 import { useAuthStore } from "../stores/authStore";
@@ -7,6 +7,7 @@ import {
   loginUser,
   registerUser,
   verify2FALogin,
+  BASE_URL,
 } from "../services/api.service";
 
 type Mode = "login" | "register";
@@ -23,9 +24,11 @@ const GoogleIcon = () => (
 
 export function AuthPage() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const inviteCode = searchParams.get("invite");
   const { login } = useAuthStore();
 
-  const [mode, setMode] = useState<Mode>("login");
+  const [mode, setMode] = useState<Mode>(inviteCode ? "register" : "login");
   const [step, setStep] = useState<Step>("auth");
   const [pendingUserId, setPendingUserId] = useState<string | null>(null);
 
@@ -57,7 +60,7 @@ export function AuthPage() {
             throw new Error("Respuesta inválida del servidor.");
           }
         } else {
-          const result = await registerUser(email, password, name);
+          const result = await registerUser(email, password, name, inviteCode);
           login(result.token, result.user);
           navigate("/dashboard");
         }
@@ -175,9 +178,30 @@ export function AuthPage() {
                 ? "Introduce el código de 6 dígitos de tu aplicación autenticadora"
                 : mode === "login"
                   ? "Inicia sesión para acceder a tu dashboard"
-                  : "Empieza a analizar tus datos con IA"}
+                  : inviteCode 
+                    ? "Completa tu registro para unirte al equipo"
+                    : "Empieza a analizar tus datos con IA"}
             </p>
           </div>
+
+          {inviteCode && mode === "register" && step === "auth" && (
+            <div style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 12,
+              background: "rgba(124, 106, 255, 0.1)",
+              border: "1px solid rgba(124, 106, 255, 0.3)",
+              padding: "12px 16px",
+              borderRadius: "var(--radius-md)",
+              marginBottom: 24
+            }}>
+              <Shield size={20} color="var(--color-accent)" style={{ flexShrink: 0 }} />
+              <p style={{ margin: 0, fontSize: 13, color: "var(--color-text-primary)", lineHeight: 1.4 }}>
+                <strong>Estás usando una invitación:</strong><br />
+                Te unirás directamente a un espacio de trabajo existente de forma segura.
+              </p>
+            </div>
+          )}
 
           <form
             onSubmit={handleSubmit}
@@ -429,7 +453,7 @@ export function AuthPage() {
 
               {/* Botón Google */}
               <a
-                href={`${import.meta.env.VITE_API_URL ?? "http://localhost:3001"}/api/auth/google`}
+                href={`${BASE_URL}/api/auth/google`}
                 style={{
                   display: "flex",
                   alignItems: "center",

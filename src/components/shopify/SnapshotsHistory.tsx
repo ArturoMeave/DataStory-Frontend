@@ -1,6 +1,13 @@
 import { useState, useEffect } from "react";
 import { useAuthStore } from "../../stores/authStore";
-import { FileText, ExternalLink, Loader2, Trash2 } from "lucide-react";
+import {
+  FileText,
+  ExternalLink,
+  Loader2,
+  Trash2,
+  FileDown,
+} from "lucide-react";
+import { BASE_URL } from "../../services/api.service";
 
 export function SnapshotsHistory() {
   const { token } = useAuthStore();
@@ -8,7 +15,7 @@ export function SnapshotsHistory() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetch("http://localhost:3001/api/snapshots/me", {
+    fetch(`${BASE_URL}/api/snapshots/me`, {
       headers: { Authorization: `Bearer ${token}` },
     })
       .then((res) => res.json())
@@ -20,25 +27,18 @@ export function SnapshotsHistory() {
   }, [token]);
 
   const handleDelete = async (id: string) => {
-    if (
-      !window.confirm(
-        "¿Estás seguro de que quieres eliminar este informe? Esta acción no se puede deshacer.",
-      )
-    ) {
-      return;
-    }
+    if (!window.confirm("¿Seguro que quieres eliminar este informe?")) return;
 
     try {
-      const res = await fetch(`http://localhost:3001/api/snapshots/${id}`, {
+      const res = await fetch(`${BASE_URL}/api/snapshots/${id}`, {
         method: "DELETE",
         headers: { Authorization: `Bearer ${token}` },
       });
 
       if (res.ok) {
-        // Si el servidor lo borra, lo quitamos visualmente de la lista al instante
         setSnapshots((prev) => prev.filter((snap) => snap.id !== id));
       } else {
-        alert("Hubo un error al eliminar el informe.");
+        alert("Hubo un error al eliminar.");
       }
     } catch (error) {
       console.error("Error al eliminar snapshot:", error);
@@ -85,7 +85,7 @@ export function SnapshotsHistory() {
               padding: 40,
             }}
           >
-            No hay informes guardados todavía.
+            No hay informes.
           </p>
         ) : (
           snapshots.map((snap) => (
@@ -132,7 +132,6 @@ export function SnapshotsHistory() {
                 </div>
               </div>
 
-              {/* Botones de acción (Ver y Eliminar) */}
               <div style={{ display: "flex", gap: 8 }}>
                 <button
                   onClick={() =>
@@ -147,14 +146,33 @@ export function SnapshotsHistory() {
                     padding: "8px 12px",
                     borderRadius: 8,
                     cursor: "pointer",
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 8,
                     color: "var(--color-text-primary)",
                   }}
+                  title="Ver Informe"
                 >
-                  <ExternalLink size={14} /> Ver
+                  <ExternalLink size={14} />
                 </button>
+
+                <button
+                  onClick={() =>
+                    window.open(
+                      `http://localhost:5173/share/${snap.id}?download=true`,
+                      "_blank",
+                    )
+                  }
+                  style={{
+                    background: "transparent",
+                    border: "1px solid var(--color-border)",
+                    padding: "8px 12px",
+                    borderRadius: 8,
+                    cursor: "pointer",
+                    color: "var(--color-accent)",
+                  }}
+                  title="Descargar PDF"
+                >
+                  <FileDown size={14} />
+                </button>
+
                 <button
                   onClick={() => handleDelete(snap.id)}
                   style={{
@@ -163,12 +181,9 @@ export function SnapshotsHistory() {
                     padding: "8px 12px",
                     borderRadius: 8,
                     cursor: "pointer",
-                    display: "flex",
-                    alignItems: "center",
                     color: "var(--color-danger)",
-                    transition: "all 0.2s",
                   }}
-                  title="Eliminar informe"
+                  title="Eliminar"
                 >
                   <Trash2 size={16} />
                 </button>

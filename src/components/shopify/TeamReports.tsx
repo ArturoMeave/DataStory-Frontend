@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useAuthStore } from "../../stores/authStore";
 import { FileText, ExternalLink, Loader2 } from "lucide-react"; // Calendar y Users eliminados
+import { BASE_URL } from "../../services/api.service";
 
 export function TeamReports() {
   const { token } = useAuthStore();
@@ -8,7 +9,7 @@ export function TeamReports() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetch("http://localhost:3001/api/snapshots/me", {
+    fetch(`${BASE_URL}/api/snapshots/me`, {
       headers: { Authorization: `Bearer ${token}` },
     })
       .then((res) => res.json())

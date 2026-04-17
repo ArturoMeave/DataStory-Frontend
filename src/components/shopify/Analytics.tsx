@@ -10,6 +10,7 @@ import {
   ResponsiveContainer,
   CartesianGrid,
 } from "recharts";
+import { BASE_URL } from "../../services/api.service";
 
 export function Analytics() {
   const { token } = useAuthStore();
@@ -23,7 +24,7 @@ export function Analytics() {
     const fetchDataAndAnalyze = async () => {
       try {
         const shopifyRes = await fetch(
-          "http://localhost:3001/api/auth/shopify/data",
+          `${BASE_URL}/api/auth/shopify/data`,
           {
             headers: { Authorization: `Bearer ${token}` },
           },
@@ -38,7 +39,7 @@ export function Analytics() {
 
         const prompt = `Analiza estos datos de mi tienda: Ingresos totales: $${shopifyData.totalRevenue}, Pedidos totales: ${shopifyData.orderCount}, Clientes totales: ${shopifyData.customerList?.length || 0}. Actúa como un asesor de negocios y dame 3 consejos breves y directos para mejorar mis ventas basados en estos números.`;
 
-        const aiRes = await fetch("http://localhost:3001/api/ai/generate", {
+        const aiRes = await fetch(`${BASE_URL}/api/ai/generate`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",

@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { Search, Star, Mail, ShieldCheck } from "lucide-react";
 import { useAuthStore } from "../../stores/authStore";
+import { BASE_URL } from "../../services/api.service";
 
 export function Customers() {
   const { token } = useAuthStore();
@@ -11,7 +12,7 @@ export function Customers() {
   useEffect(() => {
     if (token) {
       setIsLoading(true);
-      fetch("http://localhost:3001/api/auth/shopify/data", {
+      fetch(`${BASE_URL}/api/auth/shopify/data`, {
         headers: { Authorization: `Bearer ${token}` },
       })
         .then((res) => res.json())
