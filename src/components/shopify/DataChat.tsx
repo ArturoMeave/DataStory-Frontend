@@ -1,13 +1,5 @@
 import { useState, useRef, useEffect } from "react";
-import {
-  Send,
-  Bot,
-  User,
-  Loader2,
-  Sparkles,
-  X,
-  MessageSquare,
-} from "lucide-react";
+import { Send, Loader2, Sparkles, X, MessageSquare } from "lucide-react";
 import { useAuthStore } from "../../stores/authStore";
 import { useDataStore } from "../../stores/dataStore";
 

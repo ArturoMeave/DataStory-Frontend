@@ -5,11 +5,12 @@ import {
   Package,
   TrendingUp,
   AlertCircle,
+  Camera,
 } from "lucide-react";
 import { useAuthStore } from "../../stores/authStore";
 import { useShopifyStore } from "../../stores/shopifyStore";
 import { useDataStore } from "../../stores/dataStore";
-import { DataChat } from "./DataChat"; // <-- Componente del chat importado
+import { DataChat } from "./DataChat";
 import {
   LineChart,
   Line,
@@ -37,7 +38,6 @@ export function Overview() {
   const [storeData, setStoreData] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Fetch de Shopify
   useEffect(() => {
     if (isConnected && token) {
       setIsLoading(true);
@@ -56,7 +56,6 @@ export function Overview() {
     }
   }, [token, isConnected]);
 
-  // Fetch de los datos guardados del Excel (Persistencia)
   useEffect(() => {
     if (isSkipped && !isConnected && token) {
       fetch("http://localhost:3001/api/workspace/data", {
@@ -72,9 +71,33 @@ export function Overview() {
     }
   }, [isSkipped, isConnected, token, setRows]);
 
-  // =======================================================================
-  // 🟢 MODO 1: DASHBOARD UNIVERSAL (Datos del Excel)
-  // =======================================================================
+  const saveSnapshot = async () => {
+    const rev = totalRevenue(rows);
+    const exp = totalExpenses(rows);
+    const profit = netProfit(rows);
+
+    const response = await fetch("http://localhost:3001/api/snapshots", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({
+        totalRevenue: rev,
+        totalExpenses: exp,
+        netProfit: profit,
+        periodCount: rows.length,
+        recentPeriods: rows.slice(-5),
+      }),
+    });
+
+    if (response.ok) {
+      alert("Snapshot guardado con éxito.");
+    } else {
+      alert("Error al guardar el informe.");
+    }
+  };
+
   if (isSkipped && !isConnected) {
     if (rows.length === 0) {
       return (
@@ -109,7 +132,7 @@ export function Overview() {
           </h3>
           <p style={{ color: "var(--color-text-secondary)", maxWidth: 400 }}>
             Dirígete a la pestaña "Importar Excel" y sube tu archivo CSV para
-            que nuestro motor genere tu Dashboard automáticamente.
+            generar el Dashboard.
           </p>
         </div>
       );
@@ -128,7 +151,35 @@ export function Overview() {
           animation: "fadeSlideUp 0.4s ease-out",
         }}
       >
-        {/* Tarjetas KPI */}
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+          }}
+        >
+          <h2 style={{ fontSize: 24, fontWeight: 700, margin: 0 }}>
+            Dashboard Universal
+          </h2>
+          <button
+            onClick={saveSnapshot}
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 8,
+              padding: "10px 16px",
+              background: "var(--color-accent)",
+              color: "white",
+              border: "none",
+              borderRadius: 8,
+              cursor: "pointer",
+              fontWeight: 600,
+            }}
+          >
+            <Camera size={18} /> Guardar Informe
+          </button>
+        </div>
+
         <div
           style={{
             display: "grid",
@@ -227,7 +278,6 @@ export function Overview() {
           </div>
         </div>
 
-        {/* Gráficas */}
         <div
           style={{
             display: "grid",
@@ -282,7 +332,6 @@ export function Overview() {
           </div>
         </div>
 
-        {/* <-- AQUÍ SE AÑADE EL CHAT PARA EL EXCEL --> */}
         <div style={{ marginTop: "8px" }}>
           <DataChat />
         </div>
@@ -290,9 +339,6 @@ export function Overview() {
     );
   }
 
-  // =======================================================================
-  // 🛍️ MODO 2: DASHBOARD DE SHOPIFY (Original)
-  // =======================================================================
   if (isLoading) {
     return (
       <div
@@ -302,7 +348,7 @@ export function Overview() {
           textAlign: "center",
         }}
       >
-        ⏳ Analizando tu tienda en tiempo real...
+        ⏳ Analizando tienda...
       </div>
     );
   }
@@ -318,7 +364,7 @@ export function Overview() {
           color: "var(--color-danger)",
         }}
       >
-        <h3>🛑 Bloqueo de Privacidad</h3>
+        <h3>🛑 Error</h3>
         <p>{storeData.error}</p>
       </div>
     );
@@ -500,7 +546,7 @@ export function Overview() {
               margin: 0,
             }}
           >
-            Tendencia de Ventas
+            Ventas
           </h3>
         </div>
         <div style={{ height: 300, width: "100%" }}>

@@ -7,6 +7,8 @@ import { Customers } from "../components/shopify/Customers";
 import { ExcelImport } from "../components/shopify/ExcelImport";
 import { AiDocumentAnalyst } from "../components/shopify/AiDocumentAnalyst";
 import { Analytics } from "../components/shopify/Analytics";
+import { TeamReports } from "../components/shopify/TeamReports";
+import { SnapshotsHistory } from "../components/shopify/SnapshotsHistory";
 import { useShopifyStore } from "../stores/shopifyStore";
 import { useAuthStore } from "../stores/authStore";
 import {
@@ -17,7 +19,6 @@ import {
 } from "lucide-react";
 
 export function ShopifyDashboardPage() {
-  // Traemos isSkipped y setIsSkipped del store
   const {
     isConnected,
     isSkipped,
@@ -63,12 +64,15 @@ export function ShopifyDashboardPage() {
         return <ExcelImport />;
       case "ai-docs":
         return <AiDocumentAnalyst />;
+      case "team-reports":
+        return <TeamReports />;
+      case "history":
+        return <SnapshotsHistory />;
       default:
         return <Overview />;
     }
   };
 
-  // ─── LA PUERTA (SETUP GATE): Sin conexión y sin haber omitido ───
   if (!isConnected && !isSkipped) {
     return (
       <div
@@ -162,11 +166,10 @@ export function ShopifyDashboardPage() {
               </button>
             </div>
 
-            {/* BOTÓN PARA SALTARSE EL PASO */}
             <button
               onClick={() => {
                 setIsSkipped(true);
-                setActiveView("excel"); // Los mandamos directo al importador de Excel
+                setActiveView("excel");
               }}
               style={{
                 background: "transparent",
@@ -186,7 +189,6 @@ export function ShopifyDashboardPage() {
     );
   }
 
-  // ─── EL DASHBOARD PRINCIPAL (Conectado o Modo Manual) ───
   return (
     <div
       style={{
@@ -217,7 +219,6 @@ export function ShopifyDashboardPage() {
             gap: "24px",
           }}
         >
-          {/* BANNER DE ADVERTENCIA (Si omitió la conexión) */}
           {isSkipped && !isConnected && (
             <div
               style={{

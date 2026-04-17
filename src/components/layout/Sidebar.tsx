@@ -12,6 +12,7 @@ import {
   ChevronRight,
   BarChart2,
   FileText,
+  History,
   Link as LinkIcon,
 } from "lucide-react";
 import { useAuthStore } from "../../stores/authStore";
@@ -26,9 +27,7 @@ export function Sidebar() {
     useShopifyStore();
   const [isOpen, setIsOpen] = useState(true);
 
-  // 1. DEFINIMOS TODOS LOS POSIBLES ÍTEMS
   const allItems = [
-    // Siempre visibles (Modo Universal)
     {
       id: "overview",
       label: "Resumen Global",
@@ -47,8 +46,6 @@ export function Sidebar() {
       icon: FileText,
       shopifyOnly: false,
     },
-
-    // Visibles solo si HAY tienda conectada
     { id: "products", label: "Productos", icon: Package, shopifyOnly: true },
     { id: "orders", label: "Pedidos", icon: ShoppingCart, shopifyOnly: true },
     { id: "customers", label: "Clientes", icon: Users, shopifyOnly: true },
@@ -60,7 +57,6 @@ export function Sidebar() {
     },
   ];
 
-  // 2. FILTRAMOS SEGÚN EL ESTADO DE CONEXIÓN
   const visibleItems = allItems.filter((item) =>
     isConnected ? true : !item.shopifyOnly,
   );
@@ -80,7 +76,7 @@ export function Sidebar() {
     padding: isOpen ? "0 16px" : "0",
     borderRadius: 12,
     background: isSpecial
-      ? "rgba(149, 191, 71, 0.15)" // Verde Shopify suave
+      ? "rgba(149, 191, 71, 0.15)"
       : isActive
         ? "var(--color-accent)"
         : "transparent",
@@ -114,7 +110,6 @@ export function Sidebar() {
         overflow: "hidden",
       }}
     >
-      {/* HEADER LOGO */}
       <div
         style={{
           display: "flex",
@@ -194,7 +189,6 @@ export function Sidebar() {
         </button>
       )}
 
-      {/* MENÚ DINÁMICO */}
       <div
         style={{ flex: 1, overflowY: "auto", paddingRight: 4 }}
         className="custom-scrollbar"
@@ -228,7 +222,6 @@ export function Sidebar() {
           })}
         </nav>
 
-        {/* BOTÓN CONECTAR TIENDA (Solo aparece si NO está conectado) */}
         {!isConnected && (
           <>
             <div
@@ -241,7 +234,7 @@ export function Sidebar() {
             />
             <button
               onClick={() => {
-                setIsSkipped(false); // Al ponerlo en false, el "Setup Gate" vuelve a aparecer
+                setIsSkipped(false);
                 navigate("/shopify");
               }}
               style={getBtnStyle(false, false, true)}
@@ -268,10 +261,28 @@ export function Sidebar() {
 
         {/* SECCIÓN SISTEMA */}
         <nav>
+          {/* NUEVO BOTÓN DE REGISTRO */}
+          <button
+            onClick={() => {
+              setActiveView("history");
+              navigate("/shopify");
+            }}
+            style={getBtnStyle(
+              location.pathname === "/shopify" && activeView === "history",
+            )}
+            title="Registro de Informes"
+          >
+            <History size={20} style={{ flexShrink: 0 }} />
+            {isOpen && (
+              <span style={{ fontWeight: 600, fontSize: 14 }}>Registro</span>
+            )}
+          </button>
+
+          {/* TEAM REPORTS ORIGINAL */}
           <button
             onClick={() => navigate("/team")}
             style={getBtnStyle(location.pathname === "/team")}
-            title="Team"
+            title="Team Reports"
           >
             <Users size={20} style={{ flexShrink: 0 }} />
             {isOpen && (
@@ -280,6 +291,7 @@ export function Sidebar() {
               </span>
             )}
           </button>
+
           <button
             onClick={() => navigate("/settings")}
             style={getBtnStyle(location.pathname === "/settings")}
@@ -293,7 +305,6 @@ export function Sidebar() {
         </nav>
       </div>
 
-      {/* CERRAR SESIÓN */}
       <div style={{ marginTop: "auto", paddingTop: 20 }}>
         <button onClick={logout} style={getBtnStyle(false, true)}>
           <LogOut size={20} style={{ flexShrink: 0 }} />
